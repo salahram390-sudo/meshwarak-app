@@ -182,9 +182,18 @@ input,select{
 }
 
 .vehIcon{
-  font-size:26px;
-  line-height:1;
-  margin-bottom:6px;
+  width:54px;
+  height:54px;
+  object-fit:contain;
+  display:block;
+  margin:2px auto 8px;
+  filter:grayscale(1) contrast(1.12) brightness(1.05);
+  opacity:.78;
+  transform:translateZ(0);
+}
+.vehCard.is-active .vehIcon{
+  filter:none;
+  opacity:1;
 }
 .vehName{
   font-size:13px;
