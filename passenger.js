@@ -171,7 +171,6 @@ function trackDriver(){
 $("#myLoc").addEventListener("click", setMyLocation);
 $("#fromSearch").addEventListener("click", ()=>searchFrom().catch(e=>$("#passengerMsg").textContent=e.message));
 $("#toSearch").addEventListener("click", ()=>searchTo().catch(e=>$("#passengerMsg").textContent=e.message));
-$("#vehicle").addEventListener("change", ()=>maybeRoute().catch(()=>{}));
 $("#requestRide").addEventListener("click", ()=>requestRide().catch(e=>$("#passengerMsg").textContent=e.message));
 $("#trackRide").addEventListener("click", trackDriver);
 
