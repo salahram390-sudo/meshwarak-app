@@ -101,3 +101,55 @@ input,select{
 .title{font-weight:900;font-size:18px}
 .sub{font-size:12px;color:var(--muted);margin-top:2px}
 .hint{font-size:12px;color:var(--muted);margin-top:10px}
+/* ===== Bottom Sheet Snap (MIN/MID/MAX) ===== */
+:root{
+  --sheet-min: 78px;   /* شريط صغير */
+  --sheet-mid: 44vh;   /* متوسط */
+  --sheet-max: 78vh;   /* كبير */
+}
+
+.sheet{
+  position:fixed;
+  left:12px; right:12px; bottom:12px;
+  z-index:9998;
+  height: var(--sheet-mid);
+  max-height: calc(100vh - 80px);
+  transition: height .18s ease;
+  touch-action: none; /* مهم للسحب على الموبايل */
+}
+
+.sheet.is-min{ height: var(--sheet-min); }
+.sheet.is-mid{ height: var(--sheet-mid); }
+.sheet.is-max{ height: var(--sheet-max); }
+
+.grab{
+  cursor: grab;
+  touch-action: none;
+}
+
+/* محتوى الشيت يلف لو كبر */
+.sheetBody{
+  height: calc(100% - 24px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* لما يكون MIN نخبي معظم العناصر ونسيب سطر صغير */
+.sheet.is-min .sheetBody > *:not(.miniRow){
+  display:none;
+}
+.sheet.is-min .miniRow{
+  display:flex !important;
+}
+
+.miniRow{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 6px 2px 2px;
+}
+.miniRow .miniTitle{
+  font-size:13px;
+  color: var(--muted);
+}
