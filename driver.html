@@ -4,6 +4,9 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>مشوارك | السائق</title>
+  <meta name="theme-color" content="#0a0c10"/>
+  <link rel="manifest" href="./manifest.webmanifest"/>
+  <link rel="icon" href="./icons/icon-192.png"/>
   <link rel="stylesheet" href="styles.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
@@ -11,11 +14,14 @@
 
 <header class="topbar">
   <div class="left">
-    <div class="appName">مشوارك (السائق)</div>
+    <div class="appName">مشوارك</div>
     <div id="who" class="badge">—</div>
+    <div id="driverState" class="badge" style="opacity:.85">—</div>
   </div>
   <div class="right">
-    <a class="btn ghost" href="passenger.html">واجهة الراكب</a>
+    <button id="homeBtn" class="btn ghost">الرئيسية</button>
+    <button id="switchRoleBtn" class="btn ghost">تحويل لراكب</button>
+    <button id="notifyBtn" class="btn ghost">تفعيل الإشعارات</button>
     <button id="logoutBtn" class="btn danger">خروج</button>
   </div>
 </header>
@@ -25,45 +31,102 @@
 <section class="sheet is-mid" id="sheet">
   <div class="grab" id="sheetGrab"></div>
 
-  <div class="sheetBody" id="sheetBody">
+  <div class="sheetBody">
     <div class="miniRow">
-      <div class="miniTitle">اسحب لأعلى لعرض الطلبات</div>
-      <button id="miniRefreshBtn" class="btn primary" style="padding:10px 12px;border-radius:14px">تحديث</button>
+      <div class="miniTitle">اسحب لأعلى لإظهار الطلبات</div>
+      <button id="miniFocusBtn" class="btn ok" style="padding:10px 12px;border-radius:14px">عرض</button>
     </div>
 
     <div class="row">
-      <div id="areaPill" class="pill">المنطقة: —</div>
-      <div id="vehPill" class="pill">المركبة: —</div>
+      <button id="myLoc" class="btn ghost">موقعي</button>
+      <div class="pill" id="driverFilter">—</div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="sectionTitle">الطلبات المتاحة</div>
-    <div id="ridesList" class="list">—</div>
-
-    <div class="row">
-      <button id="acceptBtn" class="btn ok wide">قبول الطلب المحدد</button>
-      <button id="startLive" class="btn primary wide">تشغيل تتبع GPS</button>
+    <div id="activeRideBox" class="pill" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
+        <div>
+          <div style="font-weight:900;">رحلة نشطة</div>
+          <div id="activeRideText" style="opacity:.85; font-size:13px;">—</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button id="startTrip" class="btn primary smallBtn">بدء</button>
+          <button id="completeRide" class="btn ok smallBtn">إنهاء</button>
+          <button id="cancelRide" class="btn danger smallBtn">إلغاء</button>
+        </div>
+      </div>
     </div>
 
-    <div class="row">
-      <button id="cancelRideBtn" class="btn danger wide">إلغاء الرحلة</button>
-      <button id="completeRideBtn" class="btn ok wide">إنهاء الرحلة</button>
-    </div>
+    <div id="ridesList" class="list"></div>
 
     <div class="divider"></div>
 
-    <div class="sectionTitle">بيانات الراكب بعد القبول</div>
-    <div id="passengerInfo" class="card">
-      <div class="t">—</div>
-      <div class="s">—</div>
+    <div class="grid2">
+      <label class="field" style="grid-column:1/-1">
+        <span>عرض سعر قبل القبول (اختياري)</span>
+        <input id="offerPrice" type="number" inputmode="numeric" min="15" max="3000" placeholder="مثال: 40"/>
+      </label>
+      <button id="sendOfferBtn" class="btn primary" style="grid-column:1/-1;">إرسال عرض للسعر للطلب المحدد</button>
     </div>
 
     <div id="driverMsg" class="msg"></div>
   </div>
 </section>
 
+<!-- Switch Role Modal -->
+<div class="modalBack" id="switchModal">
+  <div class="modal">
+    <div class="modalHeader">
+      <div class="h" id="switchTitle">تحويل للدور الآخر</div>
+      <button class="btn ghost smallBtn" id="closeSwitch">إغلاق</button>
+    </div>
+    <div class="modalBody">
+      <div class="grid2">
+        <label class="field" style="grid-column:1/-1">
+          <span>الاسم</span>
+          <input id="sw_name"/>
+        </label>
+        <label class="field" style="grid-column:1/-1">
+          <span>رقم الهاتف</span>
+          <input id="sw_phone" inputmode="tel"/>
+        </label>
+        <label class="field">
+          <span>المحافظة</span>
+          <select id="sw_gov"></select>
+        </label>
+        <label class="field">
+          <span>المركز/المدينة</span>
+          <select id="sw_center"></select>
+        </label>
+        <div id="sw_driverFields" style="display:none; grid-column:1/-1;">
+          <div class="divider"></div>
+          <label class="field">
+            <span>نوع المركبة</span>
+            <select id="sw_vehicleType">
+              <option value="tuktuk">توك توك</option>
+              <option value="motor_delivery">موتوسيكل (توصيل)</option>
+              <option value="car">عربية</option>
+              <option value="microbus">ميكروباص</option>
+              <option value="tamanya">تمناية</option>
+              <option value="caboot">كابوت</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>كود المركبة</span>
+            <input id="sw_vehicleCode" placeholder="مثال: ASW-1234"/>
+          </label>
+        </div>
+      </div>
+      <div id="sw_msg" class="msg"></div>
+    </div>
+    <div class="modalFooter">
+      <button class="btn primary" id="saveSwitch">حفظ والتحويل</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./driver.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="module" src="driver.js"></script>
 </body>
 </html>

@@ -6,10 +6,14 @@ import {
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
-import { upsertUserProfile, getMyProfile } from "./firestore-api.js";
+import { upsertUserProfile, getMyProfile, migrateLegacyProfile } from "./firestore-api.js";
 import { loadEgyptLocations, fillSelect } from "./egypt-locations.js";
+import { registerPWA } from "./pwa.js";
+import { toast } from "./notify.js";
 
 const $ = (s) => document.querySelector(s);
+
+await registerPWA();
 
 function go(role) {
   window.location.href = role === "driver" ? "driver.html" : "passenger.html";
@@ -17,13 +21,15 @@ function go(role) {
 
 function isValidEgyptPhone(p) {
   const phone = (p || "").trim();
-  return /^01\d{9}$/.test(phone); // بسيط: 11 رقم يبدأ 01
+  return /^01\d{9}$/.test(phone);
 }
 
 async function initLocations() {
   $("#authMsg").textContent = "تحميل المحافظات...";
   const data = await loadEgyptLocations();
+
   fillSelect($("#gov"), data.govList, "اختر المحافظة");
+  fillSelect($("#center"), [], "اختر المركز/المدينة");
 
   $("#gov").addEventListener("change", () => {
     const gov = $("#gov").value;
@@ -31,8 +37,6 @@ async function initLocations() {
     fillSelect($("#center"), centers, "اختر المركز/المدينة");
   });
 
-  // اختيار أولي
-  fillSelect($("#center"), [], "اختر المركز/المدينة");
   $("#authMsg").textContent = "";
 }
 
@@ -40,17 +44,14 @@ function toggleModeUI() {
   const mode = $("#authMode").value;
   const role = $("#role").value;
 
-  // حقول التسجيل تظهر فقط في signup
   $("#signupOnly").style.display = mode === "signup" ? "" : "none";
-
-  // driverOnly تظهر فقط في signup + driver
   $("#driverOnly").style.display = mode === "signup" && role === "driver" ? "" : "none";
 }
 
 $("#authMode").addEventListener("change", toggleModeUI);
 $("#role").addEventListener("change", toggleModeUI);
-
 toggleModeUI();
+
 initLocations().catch((e) => ($("#authMsg").textContent = e.message));
 
 $("#authForm").addEventListener("submit", async (e) => {
@@ -67,7 +68,6 @@ $("#authForm").addEventListener("submit", async (e) => {
     let cred;
 
     if (mode === "signup") {
-      // تحقق بيانات التسجيل
       const name = ($("#name").value || "").trim();
       const phone = ($("#phone").value || "").trim();
       const governorate = $("#gov").value;
@@ -89,19 +89,19 @@ $("#authForm").addEventListener("submit", async (e) => {
 
       cred = await createUserWithEmailAndPassword(auth, email, password);
 
-      // نحفظ بروفايل المستخدم (الإيميل للتسجيل فقط)
+      const passengerProfile = { name, phone, governorate, center };
+      const driverProfile = { name, phone, governorate, center, vehicleType: driverVehicleType, vehicleCode };
+
       await upsertUserProfile(cred.user.uid, {
-        role,
-        name,
-        phone,
-        governorate,
-        center,
-        driverVehicleType,
-        vehicleCode,
+        activeRole: role,
+        profiles: {
+          passenger: passengerProfile,
+          driver: role === "driver" ? driverProfile : null,
+        },
         createdAt: Date.now(),
-        updatedAt: Date.now(),
       });
 
+      toast("تم إنشاء الحساب ✅");
       go(role);
       return;
     }
@@ -109,15 +109,13 @@ $("#authForm").addEventListener("submit", async (e) => {
     // login
     cred = await signInWithEmailAndPassword(auth, email, password);
 
-    const profile = await getMyProfile(cred.user.uid);
-    if (!profile?.role) {
-      // لو مفيش بروفايل (حالة قديمة)
-      await upsertUserProfile(cred.user.uid, { role: "passenger", updatedAt: Date.now() });
-      go("passenger");
-      return;
-    }
+    // migrate any older schema if needed
+    await migrateLegacyProfile(cred.user.uid);
 
-    go(profile.role);
+    const profile = await getMyProfile(cred.user.uid);
+    const roleToGo = profile?.activeRole || profile?.role || "passenger";
+    toast("تم تسجيل الدخول ✅");
+    go(roleToGo);
   } catch (err) {
     $("#authMsg").textContent = "خطأ: " + (err?.message || err);
   }
@@ -125,7 +123,9 @@ $("#authForm").addEventListener("submit", async (e) => {
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) return;
-
-  const profile = await getMyProfile(user.uid);
-  if (profile?.role) go(profile.role);
+  try{
+    await migrateLegacyProfile(user.uid);
+    const profile = await getMyProfile(user.uid);
+    if (profile?.activeRole) go(profile.activeRole);
+  }catch{}
 });

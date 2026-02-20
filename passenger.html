@@ -4,6 +4,9 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>مشوارك | الراكب</title>
+  <meta name="theme-color" content="#0a0c10"/>
+  <link rel="manifest" href="./manifest.webmanifest"/>
+  <link rel="icon" href="./icons/icon-192.png"/>
   <link rel="stylesheet" href="styles.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
@@ -13,9 +16,12 @@
   <div class="left">
     <div class="appName">مشوارك</div>
     <div id="who" class="badge">—</div>
+    <div id="rideState" class="badge" style="opacity:.85">—</div>
   </div>
   <div class="right">
-    <a class="btn ghost" href="driver.html">واجهة السائق</a>
+    <button id="homeBtn" class="btn ghost">الرئيسية</button>
+    <button id="switchRoleBtn" class="btn ghost">تحويل لسائق</button>
+    <button id="notifyBtn" class="btn ghost">تفعيل الإشعارات</button>
     <button id="logoutBtn" class="btn danger">خروج</button>
   </div>
 </header>
@@ -54,77 +60,130 @@
 
     <label class="field" style="grid-column: 1 / -1;">
       <span>نوع المركبة</span>
-
       <div class="vehWrap">
         <div class="vehRow" id="vehicleRow">
-          <button class="vehCard is-active" data-veh="tuktuk" type="button">
-            <div class="vehIcon">🛺</div>
+          <button class="vehCard is-active" data-veh="tuktuk" type="button" style="--vehColor:#4ea1ff">
+            <svg class="vehIconSvg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 14v-3c0-2 2-3 4-3h6c2 0 4 1 4 3v3h-1.2a3.2 3.2 0 0 0-6.2 0H11a3.2 3.2 0 0 0-6.2 0H4Zm5.9 1.4a1.8 1.8 0 1 1-3.6 0 1.8 1.8 0 0 1 3.6 0Zm9.8 0a1.8 1.8 0 1 1-3.6 0 1.8 1.8 0 0 1 3.6 0Z"/></svg>
             <div class="vehName">توك توك</div>
           </button>
 
-          <button class="vehCard" data-veh="motor_delivery" type="button">
-            <div class="vehIcon">🏍️</div>
+          <button class="vehCard" data-veh="motor_delivery" type="button" style="--vehColor:#22c55e">
+            <svg class="vehIconSvg" viewBox="0 0 24 24"><path fill="currentColor" d="M6 16a3 3 0 1 1 6 0h4a3 3 0 1 1 1 0h-1a3 3 0 0 0-6 0H8a3 3 0 0 0-2 0Zm8-9h3l2 5h-3l-2-5Zm-6 1h4l1 3H9L8 8Z"/></svg>
             <div class="vehName">موتوسيكل</div>
           </button>
 
-          <button class="vehCard" data-veh="car" type="button">
-            <div class="vehIcon">🚗</div>
+          <button class="vehCard" data-veh="car" type="button" style="--vehColor:#f59e0b">
+            <svg class="vehIconSvg" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h12l2 6v6h-2a2.5 2.5 0 0 0-5 0H11a2.5 2.5 0 0 0-5 0H4v-6l2-6Zm2.1 10.5a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Zm12.3 0a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Z"/></svg>
             <div class="vehName">عربية</div>
           </button>
 
-          <button class="vehCard" data-veh="microbus" type="button">
-            <div class="vehIcon">🚌</div>
+          <button class="vehCard" data-veh="microbus" type="button" style="--vehColor:#a855f7">
+            <svg class="vehIconSvg" viewBox="0 0 24 24"><path fill="currentColor" d="M5 5h14c1 0 2 1 2 2v9h-2a2.5 2.5 0 0 0-5 0H10a2.5 2.5 0 0 0-5 0H3V7c0-1 1-2 2-2Zm3 11a1.2 1.2 0 1 1-2.4 0A1.2 1.2 0 0 1 8 16Zm12.4 0a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Z"/></svg>
             <div class="vehName">ميكروباص</div>
           </button>
 
-          <button class="vehCard" data-veh="tamanya" type="button">
-            <div class="vehIcon">🚐</div>
+          <button class="vehCard" data-veh="tamanya" type="button" style="--vehColor:#ef4444">
+            <svg class="vehIconSvg" viewBox="0 0 24 24"><path fill="currentColor" d="M5 7h14l1 4v7h-2a2.5 2.5 0 0 0-5 0H11a2.5 2.5 0 0 0-5 0H4V11l1-4Zm3.1 10a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Zm12.3 0a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Z"/></svg>
             <div class="vehName">تمناية</div>
           </button>
 
-          <button class="vehCard" data-veh="caboot" type="button">
-            <div class="vehIcon">🚚</div>
+          <button class="vehCard" data-veh="caboot" type="button" style="--vehColor:#06b6d4">
+            <svg class="vehIconSvg" viewBox="0 0 24 24"><path fill="currentColor" d="M3 10h11l2 2h5v6h-2a2.5 2.5 0 0 0-5 0H9a2.5 2.5 0 0 0-5 0H3v-8Zm5 7a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Zm12.4 0a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Z"/></svg>
             <div class="vehName">كابوت</div>
           </button>
         </div>
       </div>
     </label>
 
-    <label class="field" style="grid-column: 1 / -1;">
-      <span>السعر (اسحب للتحديد)</span>
-
+    <label class="field" style="grid-column:1/-1;">
+      <span>السعر (يمكنك التعديل)</span>
       <div class="priceBox">
-        <div class="priceValue">
-          <span id="priceValue">15</span>
-          <small>جنيه</small>
-        </div>
-
+        <div class="priceValue"><span id="priceValue">15</span><small>جنيه</small></div>
         <input type="range" id="priceRange" min="15" max="3000" step="5" value="15"/>
       </div>
     </label>
 
-    <div class="row">
-      <button id="requestRide" class="btn ok wide">اطلب مشوار</button>
-      <button id="trackRide" class="btn primary wide">تتبع السائق</button>
-    </div>
-
-    <div class="row">
-      <button id="cancelRideBtn" class="btn danger wide">إلغاء الطلب</button>
-    </div>
-
     <div class="divider"></div>
 
-    <div class="sectionTitle">بيانات السائق بعد القبول</div>
-    <div id="driverInfo" class="card">
-      <div class="t">—</div>
-      <div class="s">—</div>
+    <div class="grid2">
+      <button id="requestRide" class="btn ok">إرسال الطلب</button>
+      <button id="cancelRide" class="btn danger">إلغاء</button>
+
+      <button id="trackRide" class="btn ghost" style="grid-column:1/-1;">تتبع السائق</button>
+
+      <div id="offerBox" class="pill" style="grid-column:1/-1; display:none;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
+          <div>
+            <div style="font-weight:900;">عرض سعر من السائق</div>
+            <div id="offerText" style="opacity:.85; font-size:13px;">—</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="acceptOffer" class="btn ok smallBtn">قبول</button>
+            <button id="rejectOffer" class="btn danger smallBtn">رفض</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="completeRide" class="btn primary" style="grid-column:1/-1;">إنهاء الرحلة</button>
     </div>
 
     <div id="passengerMsg" class="msg"></div>
   </div>
 </section>
 
+<!-- Switch Role Modal -->
+<div class="modalBack" id="switchModal">
+  <div class="modal">
+    <div class="modalHeader">
+      <div class="h" id="switchTitle">تحويل للدور الآخر</div>
+      <button class="btn ghost smallBtn" id="closeSwitch">إغلاق</button>
+    </div>
+    <div class="modalBody">
+      <div class="grid2">
+        <label class="field" style="grid-column:1/-1">
+          <span>الاسم</span>
+          <input id="sw_name"/>
+        </label>
+        <label class="field" style="grid-column:1/-1">
+          <span>رقم الهاتف</span>
+          <input id="sw_phone" inputmode="tel"/>
+        </label>
+        <label class="field">
+          <span>المحافظة</span>
+          <select id="sw_gov"></select>
+        </label>
+        <label class="field">
+          <span>المركز/المدينة</span>
+          <select id="sw_center"></select>
+        </label>
+        <div id="sw_driverFields" style="display:none; grid-column:1/-1;">
+          <div class="divider"></div>
+          <label class="field">
+            <span>نوع المركبة</span>
+            <select id="sw_vehicleType">
+              <option value="tuktuk">توك توك</option>
+              <option value="motor_delivery">موتوسيكل (توصيل)</option>
+              <option value="car">عربية</option>
+              <option value="microbus">ميكروباص</option>
+              <option value="tamanya">تمناية</option>
+              <option value="caboot">كابوت</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>كود المركبة</span>
+            <input id="sw_vehicleCode" placeholder="مثال: ASW-1234"/>
+          </label>
+        </div>
+      </div>
+      <div id="sw_msg" class="msg"></div>
+    </div>
+    <div class="modalFooter">
+      <button class="btn primary" id="saveSwitch">حفظ والتحويل</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./passenger.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="module" src="passenger.js"></script>
 </body>
 </html>
