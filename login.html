@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>مشوارك | تسجيل الدخول</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body class="authPage">
+
+  <div class="authWrap">
+    <div class="authCard">
+      <div class="brand">
+        <div class="logo">م</div>
+        <div>
+          <div class="title">مشوارك</div>
+          <div class="sub">تسجيل دخول / تسجيل جديد</div>
+        </div>
+      </div>
+
+      <form id="authForm">
+        <div class="grid2">
+          <label class="field">
+            <span>الوضع</span>
+            <select id="authMode">
+              <option value="login">دخول</option>
+              <option value="signup">تسجيل جديد</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>نوع الحساب</span>
+            <select id="role">
+              <option value="passenger">راكب</option>
+              <option value="driver">سائق</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>الإيميل</span>
+          <input id="email" type="email" placeholder="example@email.com" required>
+        </label>
+
+        <label class="field">
+          <span>كلمة المرور</span>
+          <input id="password" type="password" placeholder="••••••••" required>
+        </label>
+
+        <button class="btn primary" type="submit">متابعة</button>
+
+        <div id="authMsg" class="msg"></div>
+
+        <div class="hint">
+          بعد الدخول هتتوجه تلقائيًا لصفحة الراكب أو السائق حسب اختيارك.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="auth.js"></script>
+</body>
+</html>
