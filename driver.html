@@ -22,24 +22,18 @@
 
 <div id="map" class="map"></div>
 
-<section class="sheet">
-  <div class="grab"></div>
-  <div class="sheetBody">
+<section class="sheet is-mid" id="sheet">
+  <div class="grab" id="sheetGrab"></div>
 
-    <div class="grid2">
-      <label class="field">
-        <span>المحافظة</span>
-        <input id="gov" placeholder="مثال: الجيزة">
-      </label>
-      <label class="field">
-        <span>المركز</span>
-        <input id="center" placeholder="مثال: البدرشين">
-      </label>
+  <div class="sheetBody" id="sheetBody">
+    <div class="miniRow">
+      <div class="miniTitle">اسحب لأعلى لعرض الطلبات</div>
+      <button id="miniRefreshBtn" class="btn primary" style="padding:10px 12px;border-radius:14px">تحديث</button>
     </div>
 
     <div class="row">
-      <button id="saveArea" class="btn primary wide">حفظ المنطقة</button>
-      <button id="startListen" class="btn ok wide">تشغيل الطلبات</button>
+      <div id="areaPill" class="pill">المنطقة: —</div>
+      <div id="vehPill" class="pill">المركبة: —</div>
     </div>
 
     <div class="divider"></div>
@@ -47,11 +41,22 @@
     <div class="sectionTitle">الطلبات المتاحة</div>
     <div id="ridesList" class="list">—</div>
 
-    <div class="divider"></div>
-
     <div class="row">
       <button id="acceptBtn" class="btn ok wide">قبول الطلب المحدد</button>
       <button id="startLive" class="btn primary wide">تشغيل تتبع GPS</button>
+    </div>
+
+    <div class="row">
+      <button id="cancelRideBtn" class="btn danger wide">إلغاء الرحلة</button>
+      <button id="completeRideBtn" class="btn ok wide">إنهاء الرحلة</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sectionTitle">بيانات الراكب بعد القبول</div>
+    <div id="passengerInfo" class="card">
+      <div class="t">—</div>
+      <div class="s">—</div>
     </div>
 
     <div id="driverMsg" class="msg"></div>
