@@ -25,14 +25,12 @@
 <section class="sheet is-mid" id="sheet">
   <div class="grab" id="sheetGrab"></div>
 
-  <!-- الصف اللي بيظهر لما الشيت يبقى MIN -->
   <div class="sheetBody" id="sheetBody">
     <div class="miniRow">
       <div class="miniTitle">اسحب لأعلى لإظهار الخيارات</div>
       <button id="miniOrderBtn" class="btn ok" style="padding:10px 12px;border-radius:14px">اطلب</button>
     </div>
 
-    <!-- باقي محتوى الشيت عندك زي ما هو تحت -->
     <div class="grid2">
       <label class="field">
         <span>القيام</span>
@@ -54,71 +52,72 @@
 
     <div class="divider"></div>
 
-    <div class="grid2">
-      <label class="field">
-        <span>المحافظة</span>
+    <label class="field" style="grid-column: 1 / -1;">
+      <span>نوع المركبة</span>
+
+      <div class="vehWrap">
+        <div class="vehRow" id="vehicleRow">
+          <button class="vehCard is-active" data-veh="tuktuk" type="button">
+            <div class="vehIcon">🛺</div>
+            <div class="vehName">توك توك</div>
+          </button>
+
+          <button class="vehCard" data-veh="motor_delivery" type="button">
+            <div class="vehIcon">🏍️</div>
+            <div class="vehName">موتوسيكل</div>
+          </button>
+
+          <button class="vehCard" data-veh="car" type="button">
+            <div class="vehIcon">🚗</div>
+            <div class="vehName">عربية</div>
+          </button>
+
+          <button class="vehCard" data-veh="microbus" type="button">
+            <div class="vehIcon">🚌</div>
+            <div class="vehName">ميكروباص</div>
+          </button>
+
+          <button class="vehCard" data-veh="tamanya" type="button">
+            <div class="vehIcon">🚐</div>
+            <div class="vehName">تمناية</div>
+          </button>
+
+          <button class="vehCard" data-veh="caboot" type="button">
+            <div class="vehIcon">🚚</div>
+            <div class="vehName">كابوت</div>
+          </button>
+        </div>
+      </div>
+    </label>
 
     <label class="field" style="grid-column: 1 / -1;">
-  <span>نوع المركبة</span>
+      <span>السعر (اسحب للتحديد)</span>
 
-  <div class="vehWrap">
-    <div class="vehRow" id="vehicleRow">
-      <button class="vehCard is-active" data-veh="tuktuk" type="button">
-        <div class="vehIcon">🛺</div>
-        <div class="vehName">توك توك</div>
-      </button>
+      <div class="priceBox">
+        <div class="priceValue">
+          <span id="priceValue">15</span>
+          <small>جنيه</small>
+        </div>
 
-      <button class="vehCard" data-veh="motor_delivery" type="button">
-        <div class="vehIcon">🏍️</div>
-        <div class="vehName">موتوسيكل</div>
-      </button>
-
-      <button class="vehCard" data-veh="car" type="button">
-        <div class="vehIcon">🚗</div>
-        <div class="vehName">عربية</div>
-      </button>
-
-      <button class="vehCard" data-veh="microbus" type="button">
-        <div class="vehIcon">🚌</div>
-        <div class="vehName">ميكروباص</div>
-      </button>
-
-      <button class="vehCard" data-veh="tamanya" type="button">
-        <div class="vehIcon">🚐</div>
-        <div class="vehName">تمناية</div>
-      </button>
-
-      <button class="vehCard" data-veh="caboot" type="button">
-        <div class="vehIcon">🚚</div>
-        <div class="vehName">كابوت</div>
-      </button>
-    </div>
-  </div>
-</label>
-
-      <label class="field" style="grid-column: 1 / -1;">
-  <span>السعر (تحديد يدوي)</span>
-
-  <div class="priceBox">
-    <div class="priceValue">
-      <span id="priceValue">15</span>
-      <small>جنيه</small>
-    </div>
-
-    <input 
-      type="range"
-      id="priceRange"
-      min="15"
-      max="3000"
-      step="5"
-      value="15"
-    />
-  </div>
-</label>
+        <input type="range" id="priceRange" min="15" max="3000" step="5" value="15"/>
+      </div>
+    </label>
 
     <div class="row">
       <button id="requestRide" class="btn ok wide">اطلب مشوار</button>
-      <button id="trackRide" class="btn ghost wide">تتبع السائق</button>
+      <button id="trackRide" class="btn primary wide">تتبع السائق</button>
+    </div>
+
+    <div class="row">
+      <button id="cancelRideBtn" class="btn danger wide">إلغاء الطلب</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sectionTitle">بيانات السائق بعد القبول</div>
+    <div id="driverInfo" class="card">
+      <div class="t">—</div>
+      <div class="s">—</div>
     </div>
 
     <div id="passengerMsg" class="msg"></div>
