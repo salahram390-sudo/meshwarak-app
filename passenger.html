@@ -103,11 +103,25 @@
   </div>
 </label>
 
-      <label class="field">
-        <span>السعر (تقديري)</span>
-        <input id="price" placeholder="—" readonly/>
-      </label>
+      <label class="field" style="grid-column: 1 / -1;">
+  <span>السعر (تحديد يدوي)</span>
+
+  <div class="priceBox">
+    <div class="priceValue">
+      <span id="priceValue">15</span>
+      <small>جنيه</small>
     </div>
+
+    <input 
+      type="range"
+      id="priceRange"
+      min="15"
+      max="3000"
+      step="5"
+      value="15"
+    />
+  </div>
+</label>
 
     <div class="row">
       <button id="requestRide" class="btn ok wide">اطلب مشوار</button>
