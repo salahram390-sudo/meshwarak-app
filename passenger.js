@@ -3,6 +3,7 @@ import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getMyProfile, createRideRequest, listenRide, listenDriverLive } from "./firestore-api.js";
 import { createMap, addMarker, geocodeNominatim, routeOSRM, drawRoute } from "./map-kit.js";
 let selectedPrice = 15;
+let priceTouched = false;
 let selectedVehicle = "tuktuk";
 
 const $ = (s)=>document.querySelector(s);
@@ -17,6 +18,7 @@ if (priceRange) {
   if (priceValue) priceValue.textContent = selectedPrice;
 
   priceRange.addEventListener("input", () => {
+    priceTouched = true;
     selectedPrice = Number(priceRange.value);
     if (priceValue) priceValue.textContent = selectedPrice;
   });
@@ -57,6 +59,14 @@ function km(m){return (m/1000).toFixed(2)}
 function mins(s){return Math.round(s/60)}
 
 function estimatePrice(distance_m, vehicle){
+  const suggested = estimatePrice(r.distance_m, selectedVehicle);
+const clamped = Math.max(15, Math.min(3000, suggested));
+
+if (!priceTouched && priceRange && priceValue) {
+  selectedPrice = clamped;
+  priceRange.value = String(clamped);
+  priceValue.textContent = String(clamped);
+}
   const base = { tuktuk:10, motor_delivery:12, car:18, microbus:25, tamanya:22, caboot:30 }[vehicle] ?? 15;
   const perKm = { tuktuk:4, motor_delivery:4, car:6, microbus:8, tamanya:7, caboot:10 }[vehicle] ?? 5;
   return Math.round(base + perKm*(distance_m/1000));
