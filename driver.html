@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>مشوارك | السائق</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="left">
+    <div class="appName">مشوارك (السائق)</div>
+    <div id="who" class="badge">—</div>
+  </div>
+  <div class="right">
+    <a class="btn ghost" href="passenger.html">واجهة الراكب</a>
+    <button id="logoutBtn" class="btn danger">خروج</button>
+  </div>
+</header>
+
+<div id="map" class="map"></div>
+
+<section class="sheet">
+  <div class="grab"></div>
+  <div class="sheetBody">
+
+    <div class="grid2">
+      <label class="field">
+        <span>المحافظة</span>
+        <input id="gov" placeholder="مثال: الجيزة">
+      </label>
+      <label class="field">
+        <span>المركز</span>
+        <input id="center" placeholder="مثال: البدرشين">
+      </label>
+    </div>
+
+    <div class="row">
+      <button id="saveArea" class="btn primary wide">حفظ المنطقة</button>
+      <button id="startListen" class="btn ok wide">تشغيل الطلبات</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sectionTitle">الطلبات المتاحة</div>
+    <div id="ridesList" class="list">—</div>
+
+    <div class="divider"></div>
+
+    <div class="row">
+      <button id="acceptBtn" class="btn ok wide">قبول الطلب المحدد</button>
+      <button id="startLive" class="btn primary wide">تشغيل تتبع GPS</button>
+    </div>
+
+    <div id="driverMsg" class="msg"></div>
+  </div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="driver.js"></script>
+</body>
+</html>
