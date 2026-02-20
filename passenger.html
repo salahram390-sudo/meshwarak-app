@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>مشوارك | الراكب</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="left">
+    <div class="appName">مشوارك</div>
+    <div id="who" class="badge">—</div>
+  </div>
+  <div class="right">
+    <a class="btn ghost" href="driver.html">واجهة السائق</a>
+    <button id="logoutBtn" class="btn danger">خروج</button>
+  </div>
+</header>
+
+<div id="map" class="map"></div>
+
+<section class="sheet">
+  <div class="grab"></div>
+  <div class="sheetBody">
+    <div class="grid2">
+      <label class="field">
+        <span>القيام</span>
+        <input id="fromInput" placeholder="اكتب القيام ثم اضغط بحث">
+      </label>
+      <button id="fromSearch" class="btn primary smallBtn">بحث</button>
+
+      <label class="field">
+        <span>الوصول</span>
+        <input id="toInput" placeholder="اكتب الوصول ثم اضغط بحث">
+      </label>
+      <button id="toSearch" class="btn primary smallBtn">بحث</button>
+    </div>
+
+    <div class="row">
+      <button id="myLoc" class="btn ghost">موقعي</button>
+      <div id="routeInfo" class="pill">المسافة: — | الوقت: —</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="grid2">
+      <label class="field">
+        <span>المحافظة</span>
+        <input id="gov" placeholder="مثال: الجيزة" />
+      </label>
+      <label class="field">
+        <span>المركز</span>
+        <input id="center" placeholder="مثال: البدرشين" />
+      </label>
+    </div>
+
+    <div class="grid2">
+      <label class="field">
+        <span>نوع المركبة</span>
+        <select id="vehicle">
+          <option value="tuktuk">توك توك</option>
+          <option value="motor_delivery">موتوسيكل (توصيل)</option>
+          <option value="car">عربية</option>
+          <option value="microbus">ميكروباص</option>
+          <option value="tamanya">تمناية</option>
+          <option value="caboot">كابوت</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>السعر (تقديري)</span>
+        <input id="price" placeholder="—" readonly/>
+      </label>
+    </div>
+
+    <div class="row">
+      <button id="requestRide" class="btn ok wide">اطلب مشوار</button>
+      <button id="trackRide" class="btn ghost wide">تتبع السائق</button>
+    </div>
+
+    <div id="passengerMsg" class="msg"></div>
+  </div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="passenger.js"></script>
+</body>
+</html>
