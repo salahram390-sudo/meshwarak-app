@@ -1,6 +1,28 @@
+import { auth } from "./firebase-init.js";
+import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getMyProfile, createRideRequest, listenRide, listenDriverLive } from "./firestore-api.js";
+import { createMap, addMarker, geocodeNominatim, routeOSRM, drawRoute } from "./map-kit.js";
 let selectedPrice = 15;
 let selectedVehicle = "tuktuk";
 
+const $ = (s)=>document.querySelector(s);
+const map = createMap("map");
+
+// ===== Price Slider =====
+const priceRange = document.getElementById("priceRange");
+const priceValue = document.getElementById("priceValue");
+
+if (priceRange) {
+  selectedPrice = Number(priceRange.value || 15);
+  if (priceValue) priceValue.textContent = selectedPrice;
+
+  priceRange.addEventListener("input", () => {
+    selectedPrice = Number(priceRange.value);
+    if (priceValue) priceValue.textContent = selectedPrice;
+  });
+}
+
+// ===== Vehicle Slider =====
 function bindVehicleSlider(){
   const row = document.getElementById("vehicleRow");
   if(!row) return;
@@ -14,17 +36,10 @@ function bindVehicleSlider(){
     row.querySelectorAll(".vehCard").forEach(x=>x.classList.remove("is-active"));
     btn.classList.add("is-active");
 
-    // لو فيه مسار مرسوم اعمل تحديث للسعر
     try { maybeRoute(); } catch {}
   });
 }
-
 bindVehicleSlider();
-import { auth } from "./firebase-init.js";
-import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getMyProfile, createRideRequest, listenRide, listenDriverLive } from "./firestore-api.js";
-import { createMap, addMarker, geocodeNominatim, routeOSRM, drawRoute } from "./map-kit.js";
-
 const $ = (s)=>document.querySelector(s);
 
 const map = createMap("map");
