@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مشوارك</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+body{margin:0;font-family:Arial;background:#0f172a;color:white}
+#map{height:100vh;width:100%}
+.panel{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#111827;
+padding:15px;
+border-top-left-radius:20px;
+border-top-right-radius:20px;
+box-shadow:0 -5px 20px rgba(0,0,0,.4)
+}
+input,button{
+width:100%;
+padding:10px;
+margin:5px 0;
+border-radius:10px;
+border:none;
+font-size:16px
+}
+button{background:#2563eb;color:white;font-weight:bold}
+#info{font-size:14px;margin-top:5px}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="panel">
+<input id="from" placeholder="اكتب مكان القيام">
+<button onclick="searchFrom()">بحث القيام</button>
+
+<input id="to" placeholder="اكتب مكان الوصول">
+<button onclick="searchTo()">بحث الوصول</button>
+
+<div id="info">المسافة: -</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+let map = L.map('map').setView([30.0444, 31.2357], 12);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+maxZoom: 19
+}).addTo(map);
+
+let fromMarker, toMarker, routeLine;
+let fromCoords, toCoords;
+
+async function geocode(query){
+let url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}`;
+let res = await fetch(url);
+let data = await res.json();
+if(data.length > 0){
+return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+}
+return null;
+}
+
+async function searchFrom(){
+let q = document.getElementById("from").value;
+let coords = await geocode(q);
+if(!coords) return alert("لم يتم العثور على المكان");
+fromCoords = coords;
+if(fromMarker) map.removeLayer(fromMarker);
+fromMarker = L.marker(coords).addTo(map);
+map.setView(coords, 14);
+drawRoute();
+}
+
+async function searchTo(){
+let q = document.getElementById("to").value;
+let coords = await geocode(q);
+if(!coords) return alert("لم يتم العثور على المكان");
+toCoords = coords;
+if(toMarker) map.removeLayer(toMarker);
+toMarker = L.marker(coords).addTo(map);
+map.setView(coords, 14);
+drawRoute();
+}
+
+async function drawRoute(){
+if(!fromCoords || !toCoords) return;
+
+let url = `https://router.project-osrm.org/route/v1/driving/${fromCoords[1]},${fromCoords[0]};${toCoords[1]},${toCoords[0]}?overview=full&geometries=geojson`;
+
+let res = await fetch(url);
+let data = await res.json();
+
+let route = data.routes[0];
+
+if(routeLine) map.removeLayer(routeLine);
+
+routeLine = L.geoJSON(route.geometry, {
+style:{color:"blue",weight:5}
+}).addTo(map);
+
+map.fitBounds(routeLine.getBounds());
+
+let distanceKm = (route.distance / 1000).toFixed(2);
+document.getElementById("info").innerText = "المسافة: " + distanceKm + " كم";
+}
+
+</script>
+
+</body>
+</html>
