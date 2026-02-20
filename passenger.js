@@ -141,7 +141,8 @@ async function requestRide(){
     toText: $("#toInput").value.trim(),
     from: {lat:from.lat,lng:from.lng},
     to: {lat:to.lat,lng:to.lng},
-    priceText: $("#price").value || "",
+    price: selectedPrice,
+priceText: selectedPrice + " جنيه", || "",
   });
 
   $("#passengerMsg").textContent = `تم إنشاء الطلب ✅ رقم: ${rideId}`;
