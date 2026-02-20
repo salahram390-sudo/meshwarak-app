@@ -111,7 +111,6 @@ async function maybeRoute(){
   routePoly = drawRoute(map, r.geojson, routePoly);
   $("#routeInfo").textContent = `المسافة: ${km(r.distance_m)} كم | الوقت: ${mins(r.duration_s)} دقيقة`;
   const v = selectedVehicle;
-  $("#price").value = estimatePrice(r.distance_m, v) + " جنيه";
   $("#passengerMsg").textContent="";
 }
 
