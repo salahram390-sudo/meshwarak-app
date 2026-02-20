@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>مشوارك | تسجيل الدخول</title>
-  <link rel="stylesheet" href="styles.css"/>
+  <title>مشوارك — تسجيل</title>
+  <link rel="stylesheet" href="./styles.css"/>
 </head>
 <body class="authPage">
 
@@ -37,14 +37,61 @@
           </label>
         </div>
 
+        <!-- بيانات التسجيل فقط -->
+        <div class="grid2" id="signupOnly" style="display:none;">
+          <label class="field" style="grid-column:1/-1">
+            <span>الاسم</span>
+            <input id="name" placeholder="اسمك بالكامل"/>
+          </label>
+
+          <label class="field" style="grid-column:1/-1">
+            <span>رقم الهاتف</span>
+            <input id="phone" inputmode="tel" placeholder="01xxxxxxxxx"/>
+          </label>
+
+          <label class="field">
+            <span>المحافظة</span>
+            <select id="gov"></select>
+          </label>
+
+          <label class="field">
+            <span>المركز / المدينة</span>
+            <select id="center"></select>
+          </label>
+        </div>
+
+        <!-- للسائق فقط -->
+        <div id="driverOnly" style="display:none;">
+          <div class="divider"></div>
+
+          <label class="field">
+            <span>نوع المركبة (للسائق فقط)</span>
+            <select id="driverVehicleType">
+              <option value="tuktuk">توك توك</option>
+              <option value="motor_delivery">موتوسيكل (توصيل)</option>
+              <option value="car">عربية</option>
+              <option value="microbus">ميكروباص</option>
+              <option value="tamanya">تمناية</option>
+              <option value="caboot">كابوت</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>كود المركبة (للسائق فقط)</span>
+            <input id="vehicleCode" placeholder="مثال: ASW-1234"/>
+          </label>
+        </div>
+
+        <div class="divider"></div>
+
         <label class="field">
-          <span>الإيميل</span>
-          <input id="email" type="email" placeholder="example@email.com" required>
+          <span>البريد الإلكتروني</span>
+          <input id="email" type="email" placeholder="example@email.com" required/>
         </label>
 
         <label class="field">
           <span>كلمة المرور</span>
-          <input id="password" type="password" placeholder="••••••••" required>
+          <input id="password" type="password" placeholder="••••••••" required/>
         </label>
 
         <button class="btn primary" type="submit">متابعة</button>
@@ -52,12 +99,12 @@
         <div id="authMsg" class="msg"></div>
 
         <div class="hint">
-          بعد الدخول هتتوجه تلقائيًا لصفحة الراكب أو السائق حسب اختيارك.
+          * الإيميل للتسجيل فقط، ولن يظهر للطرف الآخر في الرحلة.
         </div>
       </form>
     </div>
   </div>
 
-  <script type="module" src="auth.js"></script>
+  <script type="module" src="./auth.js"></script>
 </body>
 </html>
