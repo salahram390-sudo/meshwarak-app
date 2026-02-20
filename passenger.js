@@ -94,7 +94,7 @@ async function maybeRoute(){
   if(!r){ $("#passengerMsg").textContent="فشل رسم المسار"; return; }
   routePoly = drawRoute(map, r.geojson, routePoly);
   $("#routeInfo").textContent = `المسافة: ${km(r.distance_m)} كم | الوقت: ${mins(r.duration_s)} دقيقة`;
-  const v = $("#vehicle").value;
+  const v = selectedVehicle;
   $("#price").value = estimatePrice(r.distance_m, v) + " جنيه";
   $("#passengerMsg").textContent="";
 }
@@ -111,7 +111,7 @@ async function requestRide(){
   rideId = await createRideRequest({
     passengerId: user.uid,
     governorate, center,
-    vehicleType: $("#vehicle").value,
+    vehicleType: selectedVehicle,
     fromText: $("#fromInput").value.trim(),
     toText: $("#toInput").value.trim(),
     from: {lat:from.lat,lng:from.lng},
