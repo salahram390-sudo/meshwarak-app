@@ -1,17 +1,21 @@
 // egypt-locations.js
-// Loads Egypt governorates + centers/cities for signup form.
-// Uses local ./egypt-data.json (recommended for GitHub Pages reliability).
-// Fallbacks to remote repo if local file missing.
+// Load Governorates + Cities for Egypt.
+// Strategy:
+// 1) Try local ./egypt-data.json (recommended to avoid CORS and be faster).
+//    Format: { govList: [...], centersByGov: { "القاهرة": ["مدينة نصر", ...], ... } }
+// 2) If local file is missing, fallback to public dataset (jsDelivr) and build mapping.
 
 const LOCAL_URL = "./egypt-data.json";
-const GOV_URL = "https://raw.githubusercontent.com/Tech-Labs/egypt-governorates-and-cities-db/master/governorates.json";
-const CITIES_URL = "https://raw.githubusercontent.com/Tech-Labs/egypt-governorates-and-cities-db/master/cities.json";
+const GOV_URL =
+  "https://cdn.jsdelivr.net/gh/Tech-Labs/egypt-governorates-and-cities-db@master/governorates.json";
+const CITIES_URL =
+  "https://cdn.jsdelivr.net/gh/Tech-Labs/egypt-governorates-and-cities-db@master/cities.json";
 
 const CACHE_KEY = "eg_locations_v2";
-const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 async function fetchJson(url) {
-  const res = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error("فشل تحميل بيانات المحافظات/المدن");
   return await res.json();
 }
@@ -48,51 +52,35 @@ function buildMapping(governorates, cities) {
   return { govList, centersByGov };
 }
 
-function tryReadCache() {
+export async function loadEgyptLocations() {
+  // cache
   try {
     const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const cached = JSON.parse(raw);
-    if (!cached?.ts || !cached?.data) return null;
-    if (Date.now() - cached.ts > CACHE_TTL_MS) return null;
-    return cached.data;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(data) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
-  } catch {}
-}
-
-export async function loadEgyptLocations() {
-  const cached = tryReadCache();
-  if (cached) return cached;
-
-  // 1) Local packaged data (best)
-  try {
-    const local = await fetchJson(LOCAL_URL);
-    if (local?.govList && local?.centersByGov) {
-      writeCache({ govList: local.govList, centersByGov: local.centersByGov });
-      return { govList: local.govList, centersByGov: local.centersByGov };
+    if (raw) {
+      const cached = JSON.parse(raw);
+      if (cached?.ts && Date.now() - cached.ts < CACHE_TTL_MS && cached?.data?.govList?.length) {
+        return cached.data;
+      }
     }
   } catch {}
 
-  // 2) Remote fallback (if local missing)
-  const govsRaw = await fetchJson(GOV_URL);
-  const citiesRaw = await fetchJson(CITIES_URL);
+  // Try local file first
+  try {
+    const local = await fetchJson(LOCAL_URL);
+    if (local?.govList?.length && local?.centersByGov) {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: local })); } catch {}
+      return local;
+    }
+  } catch {}
 
-  // The Tech-Labs JSON is exported from phpMyAdmin, so we unwrap it.
-  const govTable = (govsRaw || []).find((x) => x?.type === "table" && x?.name === "governorates");
-  const citiesTable = (citiesRaw || []).find((x) => x?.type === "table" && x?.name === "cities");
-
-  const govs = govTable?.data || [];
-  const cities = citiesTable?.data || [];
-
+  // Fallback to public dataset
+  const [govs, cities] = await Promise.all([fetchJson(GOV_URL), fetchJson(CITIES_URL)]);
   const data = buildMapping(govs, cities);
-  writeCache(data);
+
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+  } catch {}
+
   return data;
 }
 

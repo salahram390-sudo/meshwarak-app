@@ -34,6 +34,19 @@ let myPos = null;
 let myMarker = null;
 
 let selectedVehicle = "tuktuk";
+let selectedGov = "";
+let selectedCenter = "";
+
+
+function updatePriceFill(){
+  const pr = document.getElementById("priceRange");
+  if(!pr) return;
+  const min = Number(pr.min||15), max = Number(pr.max||3000), val = Number(pr.value||min);
+  const pct = ((val-min)/(max-min))*100;
+  pr.style.setProperty("--fill", pct.toFixed(2)+"%");
+}
+
+
 let selectedPrice = 15;
 let priceTouched = false;
 

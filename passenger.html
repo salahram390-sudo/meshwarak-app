@@ -58,22 +58,35 @@
 
     <div class="divider"></div>
 
+    <div class="grid2">
+      <label class="field">
+        <span>المحافظة</span>
+        <select id="pg_gov"></select>
+      </label>
+      <label class="field">
+        <span>المركز/المدينة</span>
+        <select id="pg_center"></select>
+      </label>
+    </div>
+
+<div class="divider"></div>
+
     <label class="field" style="grid-column: 1 / -1;">
       <span>نوع المركبة</span>
       <div class="vehWrap">
         <div class="vehRow" id="vehicleRow">
           <button class="vehCard is-active" data-veh="tuktuk" type="button" style="--vehColor:#4ea1ff">
-            <svg class="vehIconSvg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 14v-3c0-2 2-3 4-3h6c2 0 4 1 4 3v3h-1.2a3.2 3.2 0 0 0-6.2 0H11a3.2 3.2 0 0 0-6.2 0H4Zm5.9 1.4a1.8 1.8 0 1 1-3.6 0 1.8 1.8 0 0 1 3.6 0Zm9.8 0a1.8 1.8 0 1 1-3.6 0 1.8 1.8 0 0 1 3.6 0Z"/></svg>
+            <svg class="vehIconSvg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 15h10l1-4H6l1 4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 11V8c0-1 1-2 2-2h6c1 0 2 1 2 2v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="16.5" r="1.8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="15" cy="16.5" r="1.8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
             <div class="vehName">توك توك</div>
           </button>
 
           <button class="vehCard" data-veh="motor_delivery" type="button" style="--vehColor:#22c55e">
-            <svg class="vehIconSvg" viewBox="0 0 24 24"><path fill="currentColor" d="M6 16a3 3 0 1 1 6 0h4a3 3 0 1 1 1 0h-1a3 3 0 0 0-6 0H8a3 3 0 0 0-2 0Zm8-9h3l2 5h-3l-2-5Zm-6 1h4l1 3H9L8 8Z"/></svg>
+            <svg class="vehIconSvg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 16h4l2-5h3l2 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="7" cy="16.5" r="1.8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="16.5" r="1.8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
             <div class="vehName">موتوسيكل</div>
           </button>
 
           <button class="vehCard" data-veh="car" type="button" style="--vehColor:#f59e0b">
-            <svg class="vehIconSvg" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h12l2 6v6h-2a2.5 2.5 0 0 0-5 0H11a2.5 2.5 0 0 0-5 0H4v-6l2-6Zm2.1 10.5a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Zm12.3 0a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0Z"/></svg>
+            <svg class="vehIconSvg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l1.2-4.2A2.5 2.5 0 0 1 8.6 9h6.8a2.5 2.5 0 0 1 2.4 1.8L19 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6 15h12v2H6z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="1.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="17" r="1.6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
             <div class="vehName">عربية</div>
           </button>
 
@@ -99,7 +112,7 @@
       <span>السعر (يمكنك التعديل)</span>
       <div class="priceBox">
         <div class="priceValue"><span id="priceValue">15</span><small>جنيه</small></div>
-        <input type="range" id="priceRange" min="15" max="3000" step="5" value="15"/>
+        <input type="range" id="priceRange" class="priceRange" min="15" max="3000" step="5" value="15"/>
       </div>
     </label>
 
