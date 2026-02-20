@@ -65,18 +65,43 @@
       </label>
     </div>
 
-    <div class="grid2">
-      <label class="field">
-        <span>نوع المركبة</span>
-        <select id="vehicle">
-          <option value="tuktuk">توك توك</option>
-          <option value="motor_delivery">موتوسيكل (توصيل)</option>
-          <option value="car">عربية</option>
-          <option value="microbus">ميكروباص</option>
-          <option value="tamanya">تمناية</option>
-          <option value="caboot">كابوت</option>
-        </select>
-      </label>
+    <label class="field" style="grid-column: 1 / -1;">
+  <span>نوع المركبة</span>
+
+  <div class="vehWrap">
+    <div class="vehRow" id="vehicleRow">
+      <button class="vehCard is-active" data-veh="tuktuk" type="button">
+        <div class="vehIcon">🛺</div>
+        <div class="vehName">توك توك</div>
+      </button>
+
+      <button class="vehCard" data-veh="motor_delivery" type="button">
+        <div class="vehIcon">🏍️</div>
+        <div class="vehName">موتوسيكل</div>
+      </button>
+
+      <button class="vehCard" data-veh="car" type="button">
+        <div class="vehIcon">🚗</div>
+        <div class="vehName">عربية</div>
+      </button>
+
+      <button class="vehCard" data-veh="microbus" type="button">
+        <div class="vehIcon">🚌</div>
+        <div class="vehName">ميكروباص</div>
+      </button>
+
+      <button class="vehCard" data-veh="tamanya" type="button">
+        <div class="vehIcon">🚐</div>
+        <div class="vehName">تمناية</div>
+      </button>
+
+      <button class="vehCard" data-veh="caboot" type="button">
+        <div class="vehIcon">🚚</div>
+        <div class="vehName">كابوت</div>
+      </button>
+    </div>
+  </div>
+</label>
 
       <label class="field">
         <span>السعر (تقديري)</span>
