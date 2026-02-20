@@ -184,15 +184,14 @@ async function requestRide() {
   if (!from || !to) return setMsg("حدد القيام والوصول");
 
   // مؤقتًا لحد ما ننقلها لبيانات التسجيل (هنعمل ده في المرحلة القادمة)
-  const governorate = $("#gov")?.value?.trim() || "";
-  const center = $("#center")?.value?.trim() || "";
-  if (!governorate || !center) return setMsg("اكتب المحافظة والمركز");
-
+  if (!myGovernorate || !myCenter) {
+  return setMsg("بيانات المحافظة أو المركز ناقصة في الحساب");
+}
   setMsg("جاري إنشاء الطلب...");
   rideId = await createRideRequest({
     passengerId: user.uid,
-    governorate,
-    center,
+    governorate: myGovernorate,
+center: myCenter,
 
     vehicleType: selectedVehicle,
 
@@ -253,6 +252,8 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   const profile = await getMyProfile(user.uid);
+  let myGovernorate = profile?.governorate || "";
+let myCenter = profile?.center || "";
   $("#who").textContent = `راكب — ${user.email}`;
 
   // لو داخل غلط
