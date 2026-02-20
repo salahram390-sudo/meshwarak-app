@@ -174,19 +174,19 @@ function getSheetHeight(){
 }
 
 function snapByHeight(h){
-  // حدد أقرب حالة حسب الارتفاع
   const vh = window.innerHeight;
-  const minH = 78;
-  const midH = Math.round(vh * 0.44);
-  const maxH = Math.round(vh * 0.78);
+  const minH = 70;
+  const midH = Math.round(vh * 0.45);
+  const maxH = Math.round(vh * 0.85);
 
-  const dMin = Math.abs(h - minH);
-  const dMid = Math.abs(h - midH);
-  const dMax = Math.abs(h - maxH);
+  const distances = [
+    { state: "is-min", diff: Math.abs(h - minH) },
+    { state: "is-mid", diff: Math.abs(h - midH) },
+    { state: "is-max", diff: Math.abs(h - maxH) }
+  ];
 
-  if (dMin <= dMid && dMin <= dMax) return "is-min";
-  if (dMid <= dMin && dMid <= dMax) return "is-mid";
-  return "is-max";
+  distances.sort((a,b)=>a.diff-b.diff);
+  return distances[0].state;
 }
 
 function onDown(e){
