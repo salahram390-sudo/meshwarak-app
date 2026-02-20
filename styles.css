@@ -194,3 +194,49 @@ input,select{
 .vehCard.is-active .vehName{
   color:var(--text);
 }
+/* ===== Price Slider ===== */
+
+.priceBox{
+  border:1px solid var(--border);
+  background:rgba(0,0,0,.18);
+  border-radius:18px;
+  padding:14px;
+}
+
+.priceValue{
+  font-size:22px;
+  font-weight:800;
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.priceValue small{
+  font-size:14px;
+  color:var(--muted);
+}
+
+#priceRange{
+  width:100%;
+  appearance:none;
+  height:6px;
+  border-radius:999px;
+  background:rgba(255,255,255,.15);
+  outline:none;
+}
+
+#priceRange::-webkit-slider-thumb{
+  appearance:none;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:var(--primary);
+  cursor:pointer;
+}
+#priceRange::-moz-range-thumb{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:var(--primary);
+  cursor:pointer;
+}
