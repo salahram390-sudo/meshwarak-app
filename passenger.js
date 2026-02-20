@@ -1,3 +1,4 @@
+let selectedPrice = 15;
 let selectedVehicle = "tuktuk";
 
 function bindVehicleSlider(){
