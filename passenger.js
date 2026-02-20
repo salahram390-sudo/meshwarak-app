@@ -142,3 +142,91 @@ onAuthStateChanged(auth, async (user)=>{
     location.href = profile.role === "driver" ? "driver.html" : "passenger.html";
   }
 });
+// ===== Bottom Sheet Drag + Snap =====
+const sheet = document.getElementById("sheet");
+const grab = document.getElementById("sheetGrab");
+const miniOrderBtn = document.getElementById("miniOrderBtn");
+
+function setSheetState(state){
+  sheet.classList.remove("is-min","is-mid","is-max");
+  sheet.classList.add(state);
+
+  // مهم عشان الخريطة تعيد حساب الحجم بعد تغيير ارتفاع الشيت
+  setTimeout(()=> {
+    try { map.invalidateSize(); } catch(e){}
+  }, 220);
+}
+
+// البداية: mid
+setSheetState("is-mid");
+
+// زر "اطلب" الصغير في وضع MIN يضغط نفس زر اطلب مشوار
+miniOrderBtn?.addEventListener("click", ()=>{
+  document.getElementById("requestRide")?.click();
+});
+
+let startY = 0;
+let startHeight = 0;
+let dragging = false;
+
+function getSheetHeight(){
+  return sheet.getBoundingClientRect().height;
+}
+
+function snapByHeight(h){
+  // حدد أقرب حالة حسب الارتفاع
+  const vh = window.innerHeight;
+  const minH = 78;
+  const midH = Math.round(vh * 0.44);
+  const maxH = Math.round(vh * 0.78);
+
+  const dMin = Math.abs(h - minH);
+  const dMid = Math.abs(h - midH);
+  const dMax = Math.abs(h - maxH);
+
+  if (dMin <= dMid && dMin <= dMax) return "is-min";
+  if (dMid <= dMin && dMid <= dMax) return "is-mid";
+  return "is-max";
+}
+
+function onDown(e){
+  dragging = true;
+  const touch = e.touches ? e.touches[0] : e;
+  startY = touch.clientY;
+  startHeight = getSheetHeight();
+  sheet.style.transition = "none";
+}
+
+function onMove(e){
+  if(!dragging) return;
+  const touch = e.touches ? e.touches[0] : e;
+  const dy = startY - touch.clientY; // سحب لفوق = زيادة ارتفاع
+  let newH = startHeight + dy;
+
+  const vh = window.innerHeight;
+  const minH = 78;
+  const maxH = Math.round(vh * 0.78);
+
+  newH = Math.max(minH, Math.min(maxH, newH));
+  sheet.style.height = newH + "px";
+}
+
+function onUp(){
+  if(!dragging) return;
+  dragging = false;
+  sheet.style.transition = "";
+  const h = getSheetHeight();
+  const state = snapByHeight(h);
+  sheet.style.height = ""; // نرجع للي بيتحكم فيه الكلاس
+  setSheetState(state);
+}
+
+// touch
+grab.addEventListener("touchstart", onDown, { passive:true });
+window.addEventListener("touchmove", onMove, { passive:true });
+window.addEventListener("touchend", onUp);
+
+// mouse (لو فتحت من كمبيوتر)
+grab.addEventListener("mousedown", onDown);
+window.addEventListener("mousemove", onMove);
+window.addEventListener("mouseup", onUp);
