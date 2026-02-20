@@ -63,13 +63,26 @@ function estimatePrice(distance_m, vehicle) {
 // ===== Price slider =====
 const priceRange = $("#priceRange");
 const priceValue = $("#priceValue");
+
+function updatePriceFill(){
+  if(!priceRange) return;
+  const min = Number(priceRange.min || 15);
+  const max = Number(priceRange.max || 3000);
+  const val = Number(priceRange.value || min);
+  const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+  priceRange.style.setProperty("--pct", pct.toFixed(2) + "%");
+}
+
 if (priceRange){
   selectedPrice = Number(priceRange.value || 15);
   if (priceValue) priceValue.textContent = String(selectedPrice);
+  updatePriceFill();
+
   priceRange.addEventListener("input", ()=>{
     priceTouched = true;
     selectedPrice = Number(priceRange.value);
     if (priceValue) priceValue.textContent = String(selectedPrice);
+    updatePriceFill();
   });
 }
 

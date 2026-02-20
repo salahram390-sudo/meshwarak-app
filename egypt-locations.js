@@ -3,12 +3,20 @@
 // هنستخدم cities.json + governorates.json علشان نطلع Governorate -> Cities mapping
 
 const GOV_URL =
-  "https://raw.githubusercontent.com/Tech-Labs/egypt-governorates-and-cities-db/master/governorates.json";
+  "https://cdn.jsdelivr.net/gh/Tech-Labs/egypt-governorates-and-cities-db@master/governorates.json";
 const CITIES_URL =
-  "https://raw.githubusercontent.com/Tech-Labs/egypt-governorates-and-cities-db/master/cities.json";
+  "https://cdn.jsdelivr.net/gh/Tech-Labs/egypt-governorates-and-cities-db@master/cities.json";
 
 const CACHE_KEY = "eg_locations_v1";
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+
+const FALLBACK_GOVS = [
+  "القاهرة","الجيزة","الإسكندرية","الدقهلية","البحر الأحمر","البحيرة","الفيوم","الغربية","الإسماعيلية",
+  "المنوفية","المنيا","القليوبية","الوادي الجديد","السويس","اسوان","اسيوط","بني سويف","بورسعيد","دمياط",
+  "الشرقية","جنوب سيناء","كفر الشيخ","مطروح","الأقصر","قنا","شمال سيناء","سوهاج"
+];
+
 
 async function fetchJson(url) {
   const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -71,8 +79,13 @@ export async function loadEgyptLocations() {
     }
   } catch {}
 
-  const [govs, cities] = await Promise.all([fetchJson(GOV_URL), fetchJson(CITIES_URL)]);
-  const data = buildMapping(govs, cities);
+  let data;
+  try {
+    const [govs, cities] = await Promise.all([fetchJson(GOV_URL), fetchJson(CITIES_URL)]);
+    data = buildMapping(govs, cities);
+  } catch (e) {
+    data = { govList: FALLBACK_GOVS.slice(), centersByGov: Object.fromEntries(FALLBACK_GOVS.map(g=>[g,[]])) };
+  }
 
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
