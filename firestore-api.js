@@ -52,12 +52,47 @@ export async function createRideRequest(payload) {
   return { id: docRef.id };
 }
 
+/** Passenger toggles ride privacy (used if you have private/public separation). */
+export async function setRidePrivate(rideId, isPrivate = true) {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  await updateDoc(ref, {
+    isPrivate: !!isPrivate,
+    updatedAt: serverTimestamp(),
+  });
+  return true;
+}
+
 /** Listen single ride doc. Returns unsubscribe fn. */
 export function listenRide(rideId, cb) {
   if (!rideId) return () => {};
   const ref = doc(db, "rides", rideId);
   return onSnapshot(ref, (snap) => {
     cb(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+  });
+}
+
+/** Listen private ride doc (compat). */
+export function listenRidePrivate(rideId, cb) {
+  return listenRide(rideId, cb);
+}
+
+/** Passenger: listen for my open ride (pending/accepted) ordered by updatedAt desc. */
+export function listenMyOpenRideForPassenger(passengerId, cb) {
+  if (!passengerId) return () => {};
+  const q = query(
+    collection(db, "rides"),
+    where("passengerId", "==", passengerId),
+    where("status", "in", ["pending", "accepted"]),
+    orderBy("updatedAt", "desc"),
+    limit(1)
+  );
+  return onSnapshot(q, (snap) => {
+    let item = null;
+    snap.forEach((d) => {
+      if (!item) item = { id: d.id, ...d.data() };
+    });
+    cb(item);
   });
 }
 
@@ -77,17 +112,16 @@ export async function upsertDriverLive(driverId, pos) {
   );
 }
 
+/** Listen driver live location. */
 export function listenDriverLive(driverId, cb) {
   if (!driverId) return () => {};
   const ref = doc(db, "driversLive", driverId);
-  return onSnapshot(ref, (snap) => {
-    cb(snap.exists() ? snap.data() : null);
-  });
+  return onSnapshot(ref, (snap) => cb(snap.exists() ? snap.data() : null));
 }
 
 /**
  * Listen pending rides for driver's area.
- * NOTE: This query needs a composite index when combining multiple where() + orderBy().
+ * NOTE: This query needs a composite index when combining multiple where + orderBy.
  */
 export function listenPendingRides(filters, cb) {
   const { governorate = "", center = "", vehicleType = "" } = filters || {};
@@ -113,6 +147,7 @@ export function listenPendingRides(filters, cb) {
 export async function acceptRide(rideId, driverId, driverSnap = {}) {
   if (!rideId) throw new Error("Missing rideId");
   if (!driverId) throw new Error("Missing driverId");
+
   const ref = doc(db, "rides", rideId);
   await updateDoc(ref, {
     status: "accepted",
@@ -121,12 +156,21 @@ export async function acceptRide(rideId, driverId, driverSnap = {}) {
     updatedAt: serverTimestamp(),
   });
 }
-/** Cancel ride (passenger or driver) */
-// ===============================
-// Compatibility exports (fix missing named exports)
-// Put this at END of firestore-api.js
-// ===============================
 
+/** Passenger accept offer (compat if you have offer flow). */
+export async function passengerAcceptOffer(rideId, driverId, driverSnap = {}) {
+  return acceptRide(rideId, driverId, driverSnap);
+}
+
+/** Passenger reject offer (optional - keeps pending). */
+export async function passengerRejectOffer(rideId) {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  await updateDoc(ref, { updatedAt: serverTimestamp() });
+  return true;
+}
+
+/** Cancel ride (passenger or driver). */
 export async function cancelRide(rideId, reason = "") {
   if (!rideId) throw new Error("Missing rideId");
   const ref = doc(db, "rides", rideId);
@@ -138,6 +182,7 @@ export async function cancelRide(rideId, reason = "") {
   return true;
 }
 
+/** Complete trip (driver). */
 export async function completeTrip(rideId) {
   if (!rideId) throw new Error("Missing rideId");
   const ref = doc(db, "rides", rideId);
@@ -148,7 +193,6 @@ export async function completeTrip(rideId) {
   return true;
 }
 
-// Aliases بعض الملفات بتسميها كده
+// -------- Compatibility aliases (some files import different names) --------
 export const cancelTrip = cancelRide;
 export const completeRide = completeTrip;
-// ===== Missing Exports Fix =====
