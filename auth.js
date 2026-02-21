@@ -65,7 +65,16 @@ async function initGovCenter() {
     setMsg("تعذر تحميل المحافظات/المراكز. تأكد من الاتصال بالإنترنت.");
   }
 }
+document.addEventListener('DOMContentLoaded', () => {
+  toggleModeUI();
+  initGovCenter();
 
+  const modeSel = document.querySelector('#authMode') || document.querySelector('#mode');
+  const roleSel = document.querySelector('#role');
+
+  if (modeSel) modeSel.addEventListener('change', toggleModeUI);
+  if (roleSel) roleSel.addEventListener('change', toggleModeUI);
+});
 async function loadProfileAndRedirect(uid) {
   // Read profile
   const ref = doc(db, "users", uid);
