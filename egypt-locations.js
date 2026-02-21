@@ -96,3 +96,10 @@ export function fillSelect(selectEl, items, placeholder = "اختر...") {
     selectEl.appendChild(opt);
   });
 }
+
+
+// Backward-compatible globals (safe)
+if (typeof window !== 'undefined') {
+  window.loadEgyptLocations = loadEgyptLocations;
+  window.fillSelect = fillSelect;
+}

@@ -1,175 +1,163 @@
-// auth.js
-import { auth } from "./firebase-init.js";
+// auth.js (module) - robust UI toggling + locations + Firebase auth
+import { auth, db } from "./firebase-init.js";
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
+  signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-import { upsertUserProfile, getMyProfile, migrateLegacyProfile } from "./firestore-api.js";
-import { registerPWA } from "./pwa.js";
-import { toast } from "./notify.js";
+import { loadEgyptLocations, fillSelect } from "./egypt-locations.js";
 
-async function getLocationsApi(){
-  // Try ES module first
-  try{
-    const mod = await import("./egypt-locations.js");
-    return {
-      loadEgyptLocations: mod.loadEgyptLocations,
-      fillSelect: mod.fillSelect
-    };
-  }catch(e){
-    // Fallback: non-module globals if someone included egypt-locations.js as a classic script
-    return {
-      loadEgyptLocations: window.loadEgyptLocations,
-      fillSelect: window.fillSelect
-    };
-  }
+const $id = (id) => document.getElementById(id);
+
+function setMsg(text) {
+  const el = $id("authMsg");
+  if (el) el.textContent = text || "";
 }
 
-const $ = (s) => document.querySelector(s);
-
-await registerPWA();
-
-function go(role) {
-  window.location.href = role === "driver" ? "driver.html" : "passenger.html";
+function show(el, on) {
+  if (!el) return;
+  el.style.display = on ? "" : "none";
 }
 
-function isValidEgyptPhone(p) {
-  const phone = (p || "").trim();
-  return /^01\d{9}$/.test(phone);
-}
-
-async function initLocations() {
-  const msg = $("#authMsg");
-  if (msg) msg.textContent = "تحميل المحافظات...";
-
-  const api = await getLocationsApi();
-  if (!api.loadEgyptLocations || !api.fillSelect) {
-    if (msg) msg.textContent = "تعذر تحميل المحافظات (تأكد من وجود egypt-locations.js).";
-    return;
-  }
-
-  const data = await api.loadEgyptLocations();
-
-  api.fillSelect($("#gov"), data.govList, "اختر المحافظة");
-  api.fillSelect($("#center"), [], "اختر المركز/المدينة");
-
-  const govEl = $("#gov");
-  if (govEl) {
-    govEl.addEventListener("change", () => {
-      const gov = govEl.value;
-      const centers = data.centersByGov[gov] || [];
-      api.fillSelect($("#center"), centers, "اختر المركز/المدينة");
-    });
-  }
-
-  if (msg) msg.textContent = "";
+function getState() {
+  const mode = ($id("authMode")?.value || "login");   // login | signup
+  const role = ($id("role")?.value || "passenger");  // passenger | driver
+  return { mode, role };
 }
 
 function toggleModeUI() {
-  // Safe guards in case some elements are missing or the script runs before DOM is ready
-  const signupOnly = $("#signupOnly");
-  const driverOnly = $("#driverOnly");
-  const btnSignup = $("#btnSignup");
-  const btnLogin  = $("#btnLogin");
+  const { mode, role } = getState();
+
+  const nameWrap = $id("nameWrap");
+  const phoneWrap = $id("phoneWrap");
+  const govWrap = $id("govWrap");
+  const centerWrap = $id("centerWrap");
+  const driverOnly = $id("driverOnly");
+  const submitBtn = $id("submitBtn");
 
   const isSignup = mode === "signup";
-  if (signupOnly) signupOnly.style.display = isSignup ? "block" : "none";
-  if (btnSignup)  btnSignup.classList.toggle("active", isSignup);
-  if (btnLogin)   btnLogin.classList.toggle("active", !isSignup);
-
   const isDriver = role === "driver";
-  if (driverOnly) driverOnly.style.display = isDriver ? "block" : "none";
 
-  const title = $("#title");
-  const subtitle = $("#subtitle");
-  if (title) title.textContent = isSignup ? "تسجيل جديد" : "تسجيل دخول";
-  if (subtitle) subtitle.textContent = isSignup ? "إنشاء حساب جديد" : "الدخول بحسابك";
+  // Signup fields
+  show(nameWrap, isSignup);
+  show(phoneWrap, isSignup);
+  show(govWrap, isSignup);
+  show(centerWrap, isSignup);
+
+  // Driver-only fields (only on signup)
+  show(driverOnly, isSignup && isDriver);
+
+  if (submitBtn) submitBtn.textContent = isSignup ? "متابعة" : "دخول";
+
+  setMsg("");
 }
 
-$("#authMode").addEventListener("change", toggleModeUI);
-$("#role").addEventListener("change", toggleModeUI);
-// Run after DOM is ready (important on mobile browsers)
-window.addEventListener("DOMContentLoaded", () => {
-  try { toggleModeUI(); } catch {}
-  initLocations().catch((e) => {
-    const m = $("#authMsg");
-    if (m) m.textContent = e?.message || "حدث خطأ";
-  });
-});
-$("#authForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  $("#authMsg").textContent = "جاري التنفيذ...";
-
-  const mode = $("#authMode").value;
-  const role = $("#role").value;
-
-  const email = $("#email").value.trim();
-  const password = $("#password").value;
+async function initGovCenter() {
+  const govSelect = $id("gov");
+  const centerSelect = $id("center");
+  if (!govSelect || !centerSelect) return;
 
   try {
-    let cred;
+    const data = await loadEgyptLocations(); // {govList, centersByGov}
+    const govList = data?.govList || [];
+    const centersByGov = data?.centersByGov || {};
 
-    if (mode === "signup") {
-      const name = ($("#name").value || "").trim();
-      const phone = ($("#phone").value || "").trim();
-      const governorate = $("#gov").value;
-      const center = $("#center").value;
+    fillSelect(govSelect, govList, "اختر المحافظة");
+    fillSelect(centerSelect, [], "اختر المركز/المدينة");
 
-      if (!name) throw new Error("اكتب الاسم");
-      if (!isValidEgyptPhone(phone)) throw new Error("رقم الهاتف لازم يكون 11 رقم ويبدأ بـ 01");
-      if (!governorate) throw new Error("اختار المحافظة");
-      if (!center) throw new Error("اختار المركز/المدينة");
+    govSelect.addEventListener("change", () => {
+      const gov = govSelect.value || "";
+      const centers = centersByGov[gov] || [];
+      fillSelect(centerSelect, centers, "اختر المركز/المدينة");
+    });
+  } catch (e) {
+    console.error(e);
+    setMsg("تعذر تحميل المحافظات/المراكز. تأكد من الاتصال بالإنترنت.");
+  }
+}
 
-      let driverVehicleType = null;
-      let vehicleCode = null;
+async function loadProfileAndRedirect(uid) {
+  // Read profile
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  const profile = snap.exists() ? snap.data() : null;
 
-      if (role === "driver") {
-        driverVehicleType = $("#driverVehicleType").value;
-        vehicleCode = ($("#vehicleCode").value || "").trim();
-        if (!vehicleCode) throw new Error("اكتب كود المركبة للسائق");
-      }
+  // Determine route
+  const role = profile?.role || "passenger";
+  const target = role === "driver" ? "./driver.html" : "./passenger.html";
+  location.href = target;
+}
 
-      cred = await createUserWithEmailAndPassword(auth, email, password);
+async function onSubmit(e) {
+  e.preventDefault();
+  const { mode, role } = getState();
 
-      const passengerProfile = { name, phone, governorate, center };
-      const driverProfile = { name, phone, governorate, center, vehicleType: driverVehicleType, vehicleCode };
+  const email = ($id("email")?.value || "").trim();
+  const password = ($id("password")?.value || "").trim();
 
-      await upsertUserProfile(cred.user.uid, {
-        activeRole: role,
-        profiles: {
-          passenger: passengerProfile,
-          driver: role === "driver" ? driverProfile : null,
-        },
-        createdAt: Date.now(),
-      });
+  if (!email || !password) return setMsg("اكتب الإيميل وكلمة المرور.");
 
-      toast("تم إنشاء الحساب ✅");
-      go(role);
+  try {
+    if (mode === "login") {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      await loadProfileAndRedirect(cred.user.uid);
       return;
     }
 
-    // login
-    cred = await signInWithEmailAndPassword(auth, email, password);
+    // signup
+    const name = ($id("name")?.value || "").trim();
+    const phone = ($id("phone")?.value || "").trim();
+    const governorate = ($id("gov")?.value || "").trim();
+    const center = ($id("center")?.value || "").trim();
 
-    // migrate any older schema if needed
-    await migrateLegacyProfile(cred.user.uid);
+    if (!name) return setMsg("اكتب الاسم.");
+    if (!phone) return setMsg("اكتب رقم الهاتف.");
+    if (!governorate) return setMsg("اختار المحافظة.");
+    if (!center) return setMsg("اختار المركز/المدينة.");
 
-    const profile = await getMyProfile(cred.user.uid);
-    const roleToGo = profile?.activeRole || profile?.role || "passenger";
-    toast("تم تسجيل الدخول ✅");
-    go(roleToGo);
+    let vehicleType = "";
+    let vehicleCode = "";
+    if (role === "driver") {
+      vehicleType = ($id("vehicleType")?.value || "").trim();
+      vehicleCode = ($id("vehicleCode")?.value || "").trim();
+      if (!vehicleType) return setMsg("اختار نوع المركبة.");
+      if (!vehicleCode) return setMsg("اكتب كود المركبة.");
+    }
+
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+    const profile = {
+      uid: cred.user.uid,
+      role,
+      name,
+      phone,
+      governorate,
+      center,
+      vehicleType: role === "driver" ? vehicleType : "",
+      vehicleCode: role === "driver" ? vehicleCode : "",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+
+    await setDoc(doc(db, "users", cred.user.uid), profile, { merge: true });
+
+    await loadProfileAndRedirect(cred.user.uid);
   } catch (err) {
-    $("#authMsg").textContent = "خطأ: " + (err?.message || err);
+    console.error(err);
+    const msg = (err && err.message) ? String(err.message) : "حصل خطأ";
+    setMsg(msg);
   }
-});
+}
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return;
-  try{
-    await migrateLegacyProfile(user.uid);
-    const profile = await getMyProfile(user.uid);
-    if (profile?.activeRole) go(profile.activeRole);
-  }catch{}
-});
+function init() {
+  // Wire events safely
+  $id("authMode")?.addEventListener("change", toggleModeUI);
+  $id("role")?.addEventListener("change", toggleModeUI);
+  $id("authForm")?.addEventListener("submit", onSubmit);
+
+  toggleModeUI();
+  initGovCenter();
+}
+
+document.addEventListener("DOMContentLoaded", init);
