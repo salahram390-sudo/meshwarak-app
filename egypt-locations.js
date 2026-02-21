@@ -102,3 +102,15 @@ function fillSelect(selectEl, items, placeholder = "اختر...") {
 }
 window.loadEgyptLocations = loadEgyptLocations;
 window.fillSelect = fillSelect;
+// ... (باقي الكود بتاعك زي ما هو)
+
+// بدل export async function loadEgyptLocations() {}
+// خليها كده:
+async function loadEgyptLocations() { /* نفس جسم الدالة الحالي */ }
+
+// وبدل export function fillSelect() {}
+function fillSelect(selectEl, items, placeholder = "…اختر…") { /* نفس جسم الدالة الحالي */ }
+
+// ✅ أهم سطرين:
+window.loadEgyptLocations = loadEgyptLocations;
+window.fillSelect = fillSelect;
