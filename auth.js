@@ -70,13 +70,11 @@ async function initGovCenter() {
   }
 } // ✅ اقفل initGovCenter هنا
 // --- Boot ---
+// --- Boot ---
 document.addEventListener("DOMContentLoaded", () => {
-  // Initial UI
   toggleModeUI();
-  initGovCenter();
 
-  // Listen to mode/role changes (support ids الموجوده عندك)
-  (document.querySelector("#mode") || document.querySelector("#authMode"))?.addEventListener(
+  (document.querySelector("#authMode") || document.querySelector("#mode"))?.addEventListener(
     "change",
     toggleModeUI
   );
@@ -85,11 +83,11 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleModeUI
   );
 
-  // Submit
+  initGovCenter();
+
   const form = document.getElementById("authForm");
   if (form) form.addEventListener("submit", onSubmit);
 
-  // Redirect if already logged in
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     await loadProfileAndRedirect(user.uid);
