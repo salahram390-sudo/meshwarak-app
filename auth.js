@@ -75,14 +75,10 @@ $("#authForm").addEventListener("submit", async (e) => {
 
       if (!name) throw new Error("اكتب الاسم");
       if (!isValidEgyptPhone(phone)) throw new Error("رقم الهاتف لازم يكون 11 رقم ويبدأ بـ 01");
+      if (!governorate) throw new Error("اختار المحافظة");
+      if (!center) throw new Error("اختار المركز/المدينة");
+
       let driverVehicleType = null;
-
-      if (role === "driver") {
-        if (!governorate) throw new Error("اختار المحافظة");
-        if (!center) throw new Error("اختار المركز/المدينة");
-      }
-
-
       let vehicleCode = null;
 
       if (role === "driver") {

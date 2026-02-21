@@ -19,9 +19,10 @@ import {
 } from "./firestore-api.js";
 
 import { createMap, addMarker, geocodeNominatim, routeOSRM, drawRoute } from "./map-kit.js";
+import { loadEgyptLocations, fillSelect } from "./egypt-locations.js";
 import { registerPWA, ensureNotifyPermission } from "./pwa.js";
 import { notify, toast } from "./notify.js";
-const { loadEgyptLocations, fillSelect } = window;
+
 const $ = (s)=>document.querySelector(s);
 
 await registerPWA();
@@ -33,11 +34,6 @@ let myPos = null;
 let myMarker = null;
 
 let selectedVehicle = "tuktuk";
-let selectedGov = "";
-let selectedCenter = "";
-
-
-
 let selectedPrice = 15;
 let priceTouched = false;
 
@@ -53,40 +49,10 @@ let currentRide = null;
 let currentRideId = null;
 
 const map = createMap("map");
-initPassengerGovCenter();
 
 function setMsg(t){ const el=$("#passengerMsg"); if(el) el.textContent=t||""; }
 function setRideState(t){ const el=$("#rideState"); if(el) el.textContent=t||"—"; }
 function clampPrice(p){ return Math.max(15, Math.min(3000, Math.round(p))); }
-
-async function initPassengerGovCenter() {
-  const govSel = document.querySelector("#pg_gov");
-  const centerSel = document.querySelector("#pg_center");
-  if (!govSel || !centerSel) return;
-
-  if (typeof loadEgyptLocations !== "function" || typeof fillSelect !== "function") {
-    console.warn("egypt-locations.js not loaded (loadEgyptLocations/fillSelect missing).");
-    return;
-  }
-
-  try {
-    const data = await loadEgyptLocations();
-    fillSelect(govSel, data.govList, "اختر المحافظة...");
-    fillSelect(centerSel, [], "اختر المركز/المدينة...");
-    govSel.addEventListener("change", () => {
-      const g = govSel.value || "";
-      selectedGov = g;
-      const centers = (data.centersByGov && data.centersByGov[g]) ? data.centersByGov[g] : [];
-      fillSelect(centerSel, centers, "اختر المركز/المدينة...");
-      selectedCenter = "";
-    });
-    centerSel.addEventListener("change", () => {
-      selectedCenter = centerSel.value || "";
-    });
-  } catch (e) {
-    console.warn("Failed to load Egypt locations:", e);
-  }
-}
 
 function estimatePrice(distance_m, vehicle) {
   const base = { tuktuk:10, motor_delivery:12, car:18, microbus:25, tamanya:22, caboot:30 }[vehicle] ?? 15;
@@ -97,26 +63,13 @@ function estimatePrice(distance_m, vehicle) {
 // ===== Price slider =====
 const priceRange = $("#priceRange");
 const priceValue = $("#priceValue");
-
-function updatePriceFill(){
-  if(!priceRange) return;
-  const min = Number(priceRange.min || 15);
-  const max = Number(priceRange.max || 3000);
-  const val = Number(priceRange.value || min);
-  const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
-  priceRange.style.setProperty("--pct", pct.toFixed(2) + "%");
-}
-
 if (priceRange){
   selectedPrice = Number(priceRange.value || 15);
   if (priceValue) priceValue.textContent = String(selectedPrice);
-  updatePriceFill();
-
   priceRange.addEventListener("input", ()=>{
     priceTouched = true;
     selectedPrice = Number(priceRange.value);
     if (priceValue) priceValue.textContent = String(selectedPrice);
-    updatePriceFill();
   });
 }
 
