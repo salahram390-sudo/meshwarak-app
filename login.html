@@ -1,33 +1,29 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>مشوارك — تسجيل</title>
-  <meta name="theme-color" content="#0a0c10"/>
-  <link rel="manifest" href="./manifest.webmanifest"/>
-  <link rel="icon" href="./icons/icon-192.png"/>
-  <link rel="stylesheet" href="./styles.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>مشوارك - تسجيل دخول / تسجيل جديد</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
-<body class="authPage">
-
+<body class="appBody">
   <div class="authWrap">
     <div class="authCard">
-      <div class="brand">
-        <div class="logo">م</div>
+      <div class="authHeader">
+        <div class="authLogo">م</div>
         <div>
-          <div class="title">مشوارك</div>
-          <div class="sub">تسجيل دخول / تسجيل جديد</div>
+          <div class="authTitle">مشوارك</div>
+          <div class="authSub">تسجيل دخول / تسجيل جديد</div>
         </div>
       </div>
 
-      <form id="authForm">
-        <div class="grid2">
+      <form id="authForm" class="authForm" autocomplete="on">
+        <div class="authGrid">
           <label class="field">
             <span>الوضع</span>
             <select id="authMode">
               <option value="login">دخول</option>
-              <option value="signup">تسجيل جديد</option>
+              <option value="register">تسجيل</option>
             </select>
           </label>
 
@@ -38,71 +34,64 @@
               <option value="driver">سائق</option>
             </select>
           </label>
-        </div>
 
-        <!-- بيانات التسجيل فقط -->
-        <div class="grid2" id="signupOnly" style="display:none;">
-          <label class="field" style="grid-column:1/-1">
+          <label class="field signupOnly" style="grid-column:1/-1;">
             <span>الاسم</span>
-            <input id="name" placeholder="اسمك بالكامل"/>
+            <input id="name" autocomplete="name" placeholder="اكتب اسمك" />
           </label>
 
-          <label class="field" style="grid-column:1/-1">
+          <label class="field signupOnly">
             <span>رقم الهاتف</span>
-            <input id="phone" inputmode="tel" placeholder="01xxxxxxxxx"/>
+            <input id="phone" inputmode="tel" autocomplete="tel" placeholder="01xxxxxxxxx" />
           </label>
 
-          <label class="field">
+          <label class="field signupOnly">
             <span>المحافظة</span>
             <select id="gov"></select>
           </label>
 
-          <label class="field">
+          <label class="field signupOnly">
             <span>المركز / المدينة</span>
             <select id="center"></select>
           </label>
-        </div>
 
-        <!-- للسائق فقط -->
-        <div id="driverOnly" style="display:none;">
-          <div class="divider"></div>
+          <div id="driverFields" class="driverOnly signupOnly" style="display:none; grid-column:1/-1;">
+            <div class="authGrid">
+              <label class="field">
+                <span>نوع المركبة (للسائق فقط)</span>
+                <select id="vehicleType">
+                  <option value="tuktuk">توك توك</option>
+                  <option value="motor_delivery">موتوسيكل (توصيل)</option>
+                  <option value="car">عربية</option>
+                  <option value="microbus">ميكروباص</option>
+                  <option value="tamanya">ثمانية</option>
+                  <option value="caboot">كابوت</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>كود المركبة</span>
+                <input id="vehicleCode" placeholder="مثال: ASW-1234" />
+              </label>
+            </div>
+          </div>
 
-          <label class="field">
-            <span>نوع المركبة (للسائق فقط)</span>
-            <select id="driverVehicleType">
-              <option value="tuktuk">توك توك</option>
-              <option value="motor_delivery">موتوسيكل (توصيل)</option>
-              <option value="car">عربية</option>
-              <option value="microbus">ميكروباص</option>
-              <option value="tamanya">تمناية</option>
-              <option value="caboot">كابوت</option>
-            </select>
+          <label class="field" style="grid-column:1/-1;">
+            <span>البريد الإلكتروني</span>
+            <input id="email" type="email" autocomplete="email" placeholder="example@gmail.com" />
           </label>
 
-          <label class="field">
-            <span>كود المركبة (للسائق فقط)</span>
-            <input id="vehicleCode" placeholder="مثال: ASW-1234"/>
+          <label class="field" style="grid-column:1/-1;">
+            <span>كلمة المرور</span>
+            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
           </label>
-        </div>
 
-        <div class="divider"></div>
+          <div id="authMsg" class="msg" style="grid-column:1/-1;"></div>
 
-        <label class="field">
-          <span>البريد الإلكتروني</span>
-          <input id="email" type="email" placeholder="example@email.com" required/>
-        </label>
+          <button id="submitBtn" class="btn primary" type="submit" style="grid-column:1/-1;">متابعة</button>
 
-        <label class="field">
-          <span>كلمة المرور</span>
-          <input id="password" type="password" placeholder="••••••••" required/>
-        </label>
-
-        <button class="btn primary" type="submit">متابعة</button>
-
-        <div id="authMsg" class="msg"></div>
-
-        <div class="hint">
-          * الإيميل للتسجيل فقط، ولن يظهر للطرف الآخر في الرحلة.
+          <div class="hint" style="grid-column:1/-1;">
+            * الإيميل للتسجيل فقط، ولن يظهر للطرف الآخر في الرحلة.
+          </div>
         </div>
       </form>
     </div>
