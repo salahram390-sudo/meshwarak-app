@@ -7,9 +7,25 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
 import { upsertUserProfile, getMyProfile, migrateLegacyProfile } from "./firestore-api.js";
-import { loadEgyptLocations, fillSelect } from "./egypt-locations.js";
 import { registerPWA } from "./pwa.js";
 import { toast } from "./notify.js";
+
+async function getLocationsApi(){
+  // Try ES module first
+  try{
+    const mod = await import("./egypt-locations.js");
+    return {
+      loadEgyptLocations: mod.loadEgyptLocations,
+      fillSelect: mod.fillSelect
+    };
+  }catch(e){
+    // Fallback: non-module globals if someone included egypt-locations.js as a classic script
+    return {
+      loadEgyptLocations: window.loadEgyptLocations,
+      fillSelect: window.fillSelect
+    };
+  }
+}
 
 const $ = (s) => document.querySelector(s);
 
@@ -25,35 +41,63 @@ function isValidEgyptPhone(p) {
 }
 
 async function initLocations() {
-  $("#authMsg").textContent = "تحميل المحافظات...";
-  const data = await loadEgyptLocations();
+  const msg = $("#authMsg");
+  if (msg) msg.textContent = "تحميل المحافظات...";
 
-  fillSelect($("#gov"), data.govList, "اختر المحافظة");
-  fillSelect($("#center"), [], "اختر المركز/المدينة");
+  const api = await getLocationsApi();
+  if (!api.loadEgyptLocations || !api.fillSelect) {
+    if (msg) msg.textContent = "تعذر تحميل المحافظات (تأكد من وجود egypt-locations.js).";
+    return;
+  }
 
-  $("#gov").addEventListener("change", () => {
-    const gov = $("#gov").value;
-    const centers = data.centersByGov[gov] || [];
-    fillSelect($("#center"), centers, "اختر المركز/المدينة");
-  });
+  const data = await api.loadEgyptLocations();
 
-  $("#authMsg").textContent = "";
+  api.fillSelect($("#gov"), data.govList, "اختر المحافظة");
+  api.fillSelect($("#center"), [], "اختر المركز/المدينة");
+
+  const govEl = $("#gov");
+  if (govEl) {
+    govEl.addEventListener("change", () => {
+      const gov = govEl.value;
+      const centers = data.centersByGov[gov] || [];
+      api.fillSelect($("#center"), centers, "اختر المركز/المدينة");
+    });
+  }
+
+  if (msg) msg.textContent = "";
 }
 
 function toggleModeUI() {
-  const mode = $("#authMode").value;
-  const role = $("#role").value;
+  // Safe guards in case some elements are missing or the script runs before DOM is ready
+  const signupOnly = $("#signupOnly");
+  const driverOnly = $("#driverOnly");
+  const btnSignup = $("#btnSignup");
+  const btnLogin  = $("#btnLogin");
 
-  $("#signupOnly").style.display = mode === "signup" ? "" : "none";
-  $("#driverOnly").style.display = mode === "signup" && role === "driver" ? "" : "none";
+  const isSignup = mode === "signup";
+  if (signupOnly) signupOnly.style.display = isSignup ? "block" : "none";
+  if (btnSignup)  btnSignup.classList.toggle("active", isSignup);
+  if (btnLogin)   btnLogin.classList.toggle("active", !isSignup);
+
+  const isDriver = role === "driver";
+  if (driverOnly) driverOnly.style.display = isDriver ? "block" : "none";
+
+  const title = $("#title");
+  const subtitle = $("#subtitle");
+  if (title) title.textContent = isSignup ? "تسجيل جديد" : "تسجيل دخول";
+  if (subtitle) subtitle.textContent = isSignup ? "إنشاء حساب جديد" : "الدخول بحسابك";
 }
 
 $("#authMode").addEventListener("change", toggleModeUI);
 $("#role").addEventListener("change", toggleModeUI);
-toggleModeUI();
-
-initLocations().catch((e) => ($("#authMsg").textContent = e.message));
-
+// Run after DOM is ready (important on mobile browsers)
+window.addEventListener("DOMContentLoaded", () => {
+  try { toggleModeUI(); } catch {}
+  initLocations().catch((e) => {
+    const m = $("#authMsg");
+    if (m) m.textContent = e?.message || "حدث خطأ";
+  });
+});
 $("#authForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   $("#authMsg").textContent = "جاري التنفيذ...";
