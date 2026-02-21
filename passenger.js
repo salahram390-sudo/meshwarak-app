@@ -4,7 +4,6 @@ import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 
 import {
   getMyProfile,
-  migrateLegacyProfile,
   upsertUserProfile,
   createRideRequest,
   setRidePrivate,
