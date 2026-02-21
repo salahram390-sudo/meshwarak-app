@@ -152,7 +152,3 @@ export async function completeTrip(rideId) {
 export const cancelTrip = cancelRide;
 export const completeRide = completeTrip;
 // ===== Missing Exports Fix =====
-
-// aliases (لو أي ملف مستورد باسم مختلف)
-export const cancelTrip = cancelRide;
-export const completeRide = completeTrip;
