@@ -52,7 +52,7 @@ function buildMapping(governorates, cities) {
   return { govList, centersByGov };
 }
 
-export async function loadEgyptLocations() {
+async function loadEgyptLocations() {
   // cache
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -84,7 +84,7 @@ export async function loadEgyptLocations() {
   return data;
 }
 
-export function fillSelect(selectEl, items, placeholder = "اختر...") {
+function fillSelect(selectEl, items, placeholder = "اختر...") {
   if (!selectEl) return;
   selectEl.innerHTML = "";
 
@@ -100,3 +100,5 @@ export function fillSelect(selectEl, items, placeholder = "اختر...") {
     selectEl.appendChild(opt);
   });
 }
+window.loadEgyptLocations = loadEgyptLocations;
+window.fillSelect = fillSelect;
