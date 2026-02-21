@@ -7,7 +7,6 @@ import {
   upsertUserProfile,
   createRideRequest,
   setRidePrivate,
-  listenRide,
   listenMyOpenRideForPassenger,
   listenDriverLive,
   passengerAcceptOffer,
