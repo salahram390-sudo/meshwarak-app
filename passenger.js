@@ -1,3 +1,9 @@
+window.addEventListener("error", (e) => {
+  alert(`${e.filename}\nline:${e.lineno} col:${e.colno}\n${e.message}`);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  alert(e.reason?.stack || e.reason || "unhandledrejection");
+});
 // passenger.js
 import { auth } from "./firebase-init.js";
 import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
