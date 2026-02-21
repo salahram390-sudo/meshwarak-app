@@ -159,3 +159,26 @@ export async function completeTrip(rideId) {
 // Aliases بعض الملفات بتسميها كده
 export const cancelTrip = cancelRide;
 export const completeRide = completeTrip;
+// ===== Missing Exports Fix =====
+
+export async function cancelRide(rideId) {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  await updateDoc(ref, {
+    status: "cancelled",
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function completeTrip(rideId) {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  await updateDoc(ref, {
+    status: "completed",
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// aliases (لو أي ملف مستورد باسم مختلف)
+export const cancelTrip = cancelRide;
+export const completeRide = completeTrip;
