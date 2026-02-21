@@ -1,3 +1,9 @@
+window.addEventListener("error", (e) => {
+  alert(`${e.filename}\nline:${e.lineno} col:${e.colno}\n${e.message}`);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  alert(e.reason?.stack || e.reason || "unhandledrejection");
+});
 // auth.js (ESM) - Clean + Stable
 // - No dependency on egypt-locations.js exports (prevents "export not found")
 // - Robust UI toggle for login/signup + passenger/driver
