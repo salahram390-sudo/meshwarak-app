@@ -21,7 +21,7 @@ import {
 import { createMap, addMarker, geocodeNominatim, routeOSRM, drawRoute } from "./map-kit.js";
 import { registerPWA, ensureNotifyPermission } from "./pwa.js";
 import { notify, toast } from "./notify.js";
-const { loadEgyptLocations, fillSelect } = window;
+import { loadEgyptLocations, fillSelect } from "./egypt-locations.js";
 const $ = (s)=>document.querySelector(s);
 
 await registerPWA();
