@@ -121,3 +121,12 @@ export async function acceptRide(rideId, driverId, driverSnap = {}) {
     updatedAt: serverTimestamp(),
   });
 }
+/** Cancel ride (passenger or driver) */
+export async function cancelRide(rideId) {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  await updateDoc(ref, {
+    status: "cancelled",
+    updatedAt: serverTimestamp(),
+  });
+}
