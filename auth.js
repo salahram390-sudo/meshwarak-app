@@ -31,17 +31,20 @@ function toggleModeUI() {
   const modeSel = document.querySelector('#mode') || document.querySelector('#authMode');
   const roleSel = document.querySelector('#role') || document.querySelector('#accountType');
 
-  const mode = modeSel?.value || 'login';     // login | register
-  const role = roleSel?.value || 'passenger'; // passenger | driver
+  const mode = modeSel?.value || 'login';       // login | signup (أو register)
+  const role = roleSel?.value || 'passenger';   // passenger | driver
 
-  const regBox   = document.querySelector('#regFields') || document.querySelector('#registerFields');
-  const loginBox = document.querySelector('#loginFields');
-  const driverBox= document.querySelector('#driverFields');
+  const isSignup = (mode === 'signup' || mode === 'register');
 
-  // امنع كسر الصفحة لو عنصر ناقص
-  if (loginBox) loginBox.style.display = (mode === 'login') ? '' : 'none';
-  if (regBox)   regBox.style.display   = (mode === 'register') ? '' : 'none';
-  if (driverBox)driverBox.style.display= (mode === 'register' && role === 'driver') ? '' : 'none';
+  const regBox    = document.querySelector('#regFields') || document.querySelector('#registerFields');
+  const loginBox  = document.querySelector('#loginFields');
+  const driverBox = document.querySelector('#driverFields');
+
+  if (loginBox)  loginBox.style.display  = (!isSignup) ? '' : 'none';
+  if (regBox)    regBox.style.display    = (isSignup) ? '' : 'none';
+  if (driverBox) driverBox.style.display = (isSignup && role === 'driver') ? '' : 'none';
+
+  setMsg('');
 }
 async function initGovCenter() {
   const govSelect = $id("gov");
