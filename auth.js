@@ -1,12 +1,12 @@
-// auth.js (module) - CLEAN + robust UI + gov/center + Firebase Auth
-import { auth, db } from "./firebase-init.js";
+// auth.js (module) - clean + robust UI toggling + gov/center + Firebase auth
 
+import { auth, db } from "./firebase-init.js";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   onAuthStateChanged,
+  signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-
 import {
   doc,
   getDoc,
@@ -26,49 +26,31 @@ function setMsg(text) {
 function getState() {
   const modeSel = $id("authMode") || $id("mode");
   const roleSel = $id("role") || $id("accountType");
-  const mode = (modeSel?.value || "login").trim(); // login | signup | register
-  const role = (roleSel?.value || "passenger").trim(); // passenger | driver
-  return { mode, role };
-}
 
-function show(el, on) {
-  if (!el) return;
-  el.style.display = on ? "" : "none";
+  const modeRaw = (modeSel?.value || "login").toLowerCase(); // login | signup | register
+  const roleRaw = (roleSel?.value || "passenger").toLowerCase(); // passenger | driver
+
+  const mode = modeRaw === "register" ? "signup" : modeRaw;
+  const role =
+    roleRaw === "راكب" ? "passenger" : roleRaw === "سائق" ? "driver" : roleRaw;
+
+  return { mode, role };
 }
 
 function toggleModeUI() {
   const { mode, role } = getState();
 
-  const isSignup = mode === "signup" || mode === "register";
+  const signupOnly = $id("signupOnly"); // wrapper for name/phone/gov/center
+  const driverOnly = $id("driverOnly"); // wrapper for vehicleType/vehicleCode
+
+  const isSignup = mode === "signup";
   const isDriver = role === "driver";
 
-  // دعم أكتر من naming للـ wrappers
-  const nameWrap = $id("nameWrap") || $id("signupOnly") || $id("regFields");
-  const phoneWrap = $id("phoneWrap");
-  const govWrap = $id("govWrap");
-  const centerWrap = $id("centerWrap");
-  const driverOnly = $id("driverOnly") || $id("driverFields");
+  if (signupOnly) signupOnly.style.display = isSignup ? "" : "none";
+  if (driverOnly) driverOnly.style.display = isSignup && isDriver ? "" : "none";
 
-  // لو عندك تقسيم login/register boxes قديم
-  const loginBox = $id("loginFields");
-  const regBox = $id("regFields") || $id("registerFields");
-
-  // Signup fields
-  show(nameWrap, isSignup);
-  show(phoneWrap, isSignup);
-  show(govWrap, isSignup);
-  show(centerWrap, isSignup);
-
-  // Driver-only fields (only on signup)
-  show(driverOnly, isSignup && isDriver);
-
-  // لو الصفحة عندك بتستخدم تقسيم login/register القديم
-  if (loginBox) show(loginBox, !isSignup);
-  if (regBox) show(regBox, isSignup);
-
-  // زر submit
   const form = $id("authForm");
-  const btn = form?.querySelector('button[type="submit"]') || $id("submitBtn");
+  const btn = form?.querySelector('button[type="submit"]');
   if (btn) btn.textContent = isSignup ? "تسجيل" : "متابعة";
 
   setMsg("");
@@ -94,68 +76,69 @@ async function initGovCenter() {
     });
   } catch (e) {
     console.error(e);
-    // مهم: ممنوع نكسر الملف بنص متعدد الأسطر داخل ""
     setMsg("تعذر تحميل المحافظات/المراكز. تأكد من الاتصال بالإنترنت.");
   }
 }
 
 async function loadProfileAndRedirect(uid) {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  const profile = snap.exists() ? snap.data() : null;
+  try {
+    const ref = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+    const profile = snap.exists() ? snap.data() : null;
 
-  const role = profile?.role || "passenger";
-  const target = role === "driver" ? "./driver.html" : "./passenger.html";
-  location.href = target;
+    const role = (profile?.role || "passenger").toLowerCase();
+    location.href = role === "driver" ? "./driver.html" : "./passenger.html";
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 async function onSubmit(e) {
   e.preventDefault();
+  setMsg("");
 
   const { mode, role } = getState();
-  const isSignup = mode === "signup" || mode === "register";
 
   const email = ($id("email")?.value || "").trim();
   const password = ($id("password")?.value || "").trim();
-
   if (!email || !password) return setMsg("اكتب الإيميل وكلمة المرور.");
 
-  try {
-    let userCred;
+  const isSignup = mode === "signup";
+  const isDriver = role === "driver";
 
+  try {
     if (isSignup) {
-      // signup fields
       const name = ($id("name")?.value || "").trim();
       const phone = ($id("phone")?.value || "").trim();
       const governorate = ($id("gov")?.value || "").trim();
       const center = ($id("center")?.value || "").trim();
 
-      // driver-only
       const vehicleType = ($id("vehicleType")?.value || "").trim();
       const vehicleCode = ($id("vehicleCode")?.value || "").trim();
 
-      if (!name) return setMsg("اكتب اسمك.");
+      if (!name) return setMsg("اكتب الاسم.");
       if (!phone) return setMsg("اكتب رقم الهاتف.");
       if (!governorate) return setMsg("اختر المحافظة.");
       if (!center) return setMsg("اختر المركز/المدينة.");
-      if (role === "driver" && !vehicleType) return setMsg("اختر نوع المركبة.");
-      if (role === "driver" && !vehicleCode) return setMsg("اكتب كود المركبة.");
+      if (isDriver) {
+        if (!vehicleType) return setMsg("اختر نوع المركبة.");
+        if (!vehicleCode) return setMsg("اكتب كود المركبة.");
+      }
 
-      userCred = await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = cred.user.uid;
 
-      // Save profile
-      const uid = userCred.user.uid;
       await setDoc(
         doc(db, "users", uid),
         {
           uid,
-          role,
+          role: isDriver ? "driver" : "passenger",
           name,
           phone,
           governorate,
           center,
-          vehicleType: role === "driver" ? vehicleType : "",
-          vehicleCode: role === "driver" ? vehicleCode : "",
+          vehicleType: isDriver ? vehicleType : "",
+          vehicleCode: isDriver ? vehicleCode : "",
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         },
@@ -164,28 +147,45 @@ async function onSubmit(e) {
 
       await loadProfileAndRedirect(uid);
     } else {
-      userCred = await signInWithEmailAndPassword(auth, email, password);
-      await loadProfileAndRedirect(userCred.user.uid);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      await loadProfileAndRedirect(cred.user.uid);
     }
   } catch (err) {
     console.error(err);
-    setMsg(err?.message || "حصل خطأ.");
+    const msg = err?.message ? err.message : "حدث خطأ.";
+    setMsg(msg.replace("Firebase:", "").trim());
   }
+}
+
+// ---- Optional helper if you want a logout button on login page ----
+async function tryBindLogout() {
+  const btn = $id("logoutBtn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+      setMsg("تم تسجيل الخروج.");
+    } catch (e) {
+      console.error(e);
+    }
+  });
 }
 
 // --- Boot ---
 document.addEventListener("DOMContentLoaded", () => {
   toggleModeUI();
 
-  // change listeners (support old ids too)
-  (document.querySelector("#authMode") || document.querySelector("#mode"))?.addEventListener("change", toggleModeUI);
-  (document.querySelector("#role") || document.querySelector("#accountType"))?.addEventListener("change", toggleModeUI);
+  ($id("authMode") || $id("mode"))?.addEventListener("change", toggleModeUI);
+  ($id("role") || $id("accountType"))?.addEventListener("change", toggleModeUI);
 
   initGovCenter();
 
   const form = $id("authForm");
   if (form) form.addEventListener("submit", onSubmit);
 
+  tryBindLogout();
+
+  // Redirect if already logged in
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     await loadProfileAndRedirect(user.uid);
