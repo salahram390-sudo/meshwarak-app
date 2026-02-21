@@ -27,32 +27,21 @@ function getState() {
 }
 
 function toggleModeUI() {
-  const { mode, role } = getState();
+  const modeSel = document.querySelector('#mode') || document.querySelector('#authMode');
+  const roleSel = document.querySelector('#role') || document.querySelector('#accountType');
 
-  const nameWrap = $id("nameWrap");
-  const phoneWrap = $id("phoneWrap");
-  const govWrap = $id("govWrap");
-  const centerWrap = $id("centerWrap");
-  const driverOnly = $id("driverOnly");
-  const submitBtn = $id("submitBtn");
+  const mode = modeSel?.value || 'login';     // login | register
+  const role = roleSel?.value || 'passenger'; // passenger | driver
 
-  const isSignup = mode === "signup";
-  const isDriver = role === "driver";
+  const regBox   = document.querySelector('#regFields') || document.querySelector('#registerFields');
+  const loginBox = document.querySelector('#loginFields');
+  const driverBox= document.querySelector('#driverFields');
 
-  // Signup fields
-  show(nameWrap, isSignup);
-  show(phoneWrap, isSignup);
-  show(govWrap, isSignup);
-  show(centerWrap, isSignup);
-
-  // Driver-only fields (only on signup)
-  show(driverOnly, isSignup && isDriver);
-
-  if (submitBtn) submitBtn.textContent = isSignup ? "متابعة" : "دخول";
-
-  setMsg("");
+  // امنع كسر الصفحة لو عنصر ناقص
+  if (loginBox) loginBox.style.display = (mode === 'login') ? '' : 'none';
+  if (regBox)   regBox.style.display   = (mode === 'register') ? '' : 'none';
+  if (driverBox)driverBox.style.display= (mode === 'register' && role === 'driver') ? '' : 'none';
 }
-
 async function initGovCenter() {
   const govSelect = $id("gov");
   const centerSelect = $id("center");
