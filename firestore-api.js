@@ -130,3 +130,32 @@ export async function cancelRide(rideId) {
     updatedAt: serverTimestamp(),
   });
 }
+// ===============================
+// Compatibility exports (fix missing named exports)
+// Put this at END of firestore-api.js
+// ===============================
+
+export async function cancelRide(rideId, reason = "") {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  await updateDoc(ref, {
+    status: "cancelled",
+    cancelReason: reason || "",
+    updatedAt: serverTimestamp(),
+  });
+  return true;
+}
+
+export async function completeTrip(rideId) {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  await updateDoc(ref, {
+    status: "completed",
+    updatedAt: serverTimestamp(),
+  });
+  return true;
+}
+
+// Aliases بعض الملفات بتسميها كده
+export const cancelTrip = cancelRide;
+export const completeRide = completeTrip;
