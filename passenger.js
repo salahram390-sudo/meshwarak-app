@@ -288,14 +288,7 @@ function renderRideUI(ride){
   // Private driver contact (available after acceptance)
   if(privateUnsub){ privateUnsub(); privateUnsub=null; }
   if((ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed") && ride.driverId){
-    privateUnsub = listenRidePrivate(ride.id || currentRideId, "driver", (priv)=>{
-      if(priv?.phone){
-        const d = ride.driverSnap || {};
-        setMsg(`السائق: ${d.name || "—"} | هاتف: ${priv.phone} | السعر النهائي: ${(ride.finalPrice ?? ride.price) ?? "—"} جنيه`);
-      }
-    });
-  }
-
+    
     if(d?.name){
       setMsg(`السائق: ${d.name || "—"} | السعر النهائي: ${(ride.finalPrice ?? ride.price) ?? "—"} جنيه`);
     }else{
