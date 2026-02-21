@@ -28,21 +28,25 @@ function getState() {
 }
 
 function toggleModeUI() {
-  const modeSel = document.querySelector('#mode') || document.querySelector('#authMode');
-  const roleSel = document.querySelector('#role') || document.querySelector('#accountType');
+  const modeSel = document.getElementById("authMode") || document.getElementById("mode");
+  const roleSel = document.getElementById("role") || document.getElementById("accountType");
 
-  const mode = modeSel?.value || 'login';       // login | signup (أو register)
-  const role = roleSel?.value || 'passenger';   // passenger | driver
+  const mode = modeSel?.value || "login";      // login | signup
+  const role = roleSel?.value || "passenger";  // passenger | driver
 
-  const isSignup = (mode === 'signup' || mode === 'register');
+  const signupOnly = document.getElementById("signupOnly");
+  const driverOnly = document.getElementById("driverOnly");
 
-  const regBox    = document.querySelector('#regFields') || document.querySelector('#registerFields');
-  const loginBox  = document.querySelector('#loginFields');
-  const driverBox = document.querySelector('#driverFields');
+  const isSignup = (mode === "signup");
+  const isDriver = (role === "driver");
 
-  if (loginBox)  loginBox.style.display  = (!isSignup) ? '' : 'none';
-  if (regBox)    regBox.style.display    = (isSignup) ? '' : 'none';
-  if (driverBox) driverBox.style.display = (isSignup && role === 'driver') ? '' : 'none';
+  if (signupOnly) signupOnly.style.display = isSignup ? "" : "none";
+  if (driverOnly) driverOnly.style.display = (isSignup && isDriver) ? "" : "none";
+
+  // زر submit
+  const form = document.getElementById("authForm");
+  const btn = form?.querySelector('button[type="submit"]');
+  if (btn) btn.textContent = isSignup ? "تسجيل" : "متابعة";
 
   setMsg('');
 }
@@ -71,17 +75,15 @@ async function initGovCenter() {
 } // ✅ اقفل initGovCenter هنا
 // --- Boot ---
 // --- Boot ---
+// --- Boot ---
 document.addEventListener("DOMContentLoaded", () => {
   toggleModeUI();
 
-  (document.querySelector("#authMode") || document.querySelector("#mode"))?.addEventListener(
-    "change",
-    toggleModeUI
-  );
-  (document.querySelector("#role") || document.querySelector("#accountType"))?.addEventListener(
-    "change",
-    toggleModeUI
-  );
+  const modeSel = document.getElementById("authMode") || document.getElementById("mode");
+  const roleSel = document.getElementById("role") || document.getElementById("accountType");
+
+  if (modeSel) modeSel.addEventListener("change", toggleModeUI);
+  if (roleSel) roleSel.addEventListener("change", toggleModeUI);
 
   initGovCenter();
 
