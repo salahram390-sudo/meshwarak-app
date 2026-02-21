@@ -474,9 +474,6 @@ $("#notifyBtn")?.addEventListener("click", async ()=>{
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href="login.html"; return; }
 
-  await migrateLegacyProfile(user.uid);       // salag
-  profile = await getMyProfile(user.uid);      //. salah
-
   // ensure role
   if((profile?.activeRole || "passenger") !== "passenger"){
     window.location.href = "driver.html";
