@@ -439,10 +439,7 @@ if(grab){
 // ===== Auth guard + listeners =====
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href="login.html"; return; }
-
-  await migrateLegacyProfile(user.uid);
-  profile = await getMyProfile(user.uid);
-
+  
   if((profile?.activeRole || "passenger") !== "driver"){
     window.location.href = "passenger.html";
     return;
