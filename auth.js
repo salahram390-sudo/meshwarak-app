@@ -65,15 +65,31 @@ async function initGovCenter() {
     setMsg("تعذر تحميل المحافظات/المراكز. تأكد من الاتصال بالإنترنت.");
   }
 }
-document.addEventListener('DOMContentLoaded', () => {
+// --- Boot ---
+document.addEventListener("DOMContentLoaded", () => {
+  // Initial UI
   toggleModeUI();
   initGovCenter();
 
-  const modeSel = document.querySelector('#authMode') || document.querySelector('#mode');
-  const roleSel = document.querySelector('#role');
+  // Listen to mode/role changes (support ids الموجوده عندك)
+  (document.querySelector("#mode") || document.querySelector("#authMode"))?.addEventListener(
+    "change",
+    toggleModeUI
+  );
+  (document.querySelector("#role") || document.querySelector("#accountType"))?.addEventListener(
+    "change",
+    toggleModeUI
+  );
 
-  if (modeSel) modeSel.addEventListener('change', toggleModeUI);
-  if (roleSel) roleSel.addEventListener('change', toggleModeUI);
+  // Submit
+  const form = document.getElementById("authForm");
+  if (form) form.addEventListener("submit", onSubmit);
+
+  // Redirect if already logged in
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+    await loadProfileAndRedirect(user.uid);
+  });
 });
 async function loadProfileAndRedirect(uid) {
   // Read profile
