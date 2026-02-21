@@ -196,3 +196,19 @@ export async function completeTrip(rideId) {
 // -------- Compatibility aliases (some files import different names) --------
 export const cancelTrip = cancelRide;
 export const completeRide = completeTrip;
+// -------- Legacy profile migration (compat export) --------
+export async function migrateLegacyProfile(uid) {
+  // وظيفة توافقية: لو عندك بيانات قديمة بأسماء حقول مختلفة، انقلها هنا.
+  // دلوقتي هنخليها Safe No-Op علشان ميكسرش الاستيراد.
+  // تقدر تطورها بعدين لو عندك "legacyUsers" أو حقول قديمة.
+  if (!uid) return false;
+
+  // مثال (اختياري) لو كنت مخزن قديمًا في users/{uid} لكن بحقول مختلفة:
+  // const p = await getMyProfile(uid);
+  // if (p && (p.phoneNumber && !p.phone)) {
+  //   await upsertUserProfile(uid, { phone: p.phoneNumber });
+  //   return true;
+  // }
+
+  return true;
+}
