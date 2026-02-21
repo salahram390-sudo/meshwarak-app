@@ -64,7 +64,7 @@ async function initGovCenter() {
     console.error(e);
     setMsg("تعذر تحميل المحافظات/المراكز. تأكد من الاتصال بالإنترنت.");
   }
-}
+} // ✅ اقفل initGovCenter هنا
 // --- Boot ---
 document.addEventListener("DOMContentLoaded", () => {
   // Initial UI
@@ -175,3 +175,31 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+// --- Boot ---
+document.addEventListener("DOMContentLoaded", () => {
+  // Initial UI
+  toggleModeUI();
+
+  // Listen to mode/role changes (support old ids too)
+  (document.querySelector("#authMode") || document.querySelector("#mode"))?.addEventListener(
+    "change",
+    toggleModeUI
+  );
+  (document.querySelector("#role") || document.querySelector("#accountType"))?.addEventListener(
+    "change",
+    toggleModeUI
+  );
+
+  // Locations
+  initGovCenter();
+
+  // Submit
+  const form = document.getElementById("authForm");
+  if (form) form.addEventListener("submit", onSubmit);
+
+  // Redirect if already logged in
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+    await loadProfileAndRedirect(user.uid);
+  });
+});
