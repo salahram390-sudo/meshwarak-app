@@ -10,7 +10,6 @@ import {
   acceptRideDirect,
   sendDriverOffer,
   setRidePrivate,
-  listenRidePrivate,
   cancelRide,
   startTrip,
   completeTrip,
@@ -141,6 +140,7 @@ async function acceptSelectedRideDirect(rideId, rideData){
   // activeRideId will be discovered via user doc flag (driverActiveRideId) after update
 }
 
+
 async function sendOffer(){
   if(activeRideId) return setMsg("لا يمكن إرسال عروض أثناء رحلة نشطة");
   if(!selectedRideId) return setMsg("حدد طلب أولاً");
@@ -218,12 +218,7 @@ async function handleActiveRide(ride){
   const p = ride.passengerSnap || {};
   // passenger phone is stored privately
   if(privateUnsub){ privateUnsub(); privateUnsub=null; }
-  privateUnsub = listenRidePrivate(ride.id, "passenger", (priv)=>{
-    const phone = priv?.phone || "—";
-    const finalPrice = (ride.finalPrice ?? ride.price);
-    setActiveText(`الراكب: ${p.name || "—"} | هاتف: ${phone} | السعر: ${finalPrice ?? "—"} جنيه`);
-  });
-  const finalPrice = (ride.finalPrice ?? ride.price);
+  
   
 
   // markers
