@@ -1,124 +1,99 @@
-// auth.js (module) - robust UI toggling + locations + Firebase auth
+// auth.js (module) - Clean & stable for Mashwarak
 import { auth, db } from "./firebase-init.js";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  onAuthStateChanged
+  onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { loadEgyptLocations, fillSelect } from "./egypt-locations.js";
 
 const $id = (id) => document.getElementById(id);
 
-function setMsg(text) {
+function setMsg(text = "") {
   const el = $id("authMsg");
-  if (el) el.textContent = text || "";
-}
-
-function show(el, on) {
-  if (!el) return;
-  el.style.display = on ? "" : "none";
-}
-
-function getState() {
-  const mode = ($id("authMode")?.value || "login");   // login | signup
-  const role = ($id("role")?.value || "passenger");  // passenger | driver
-  return { mode, role };
+  if (el) el.textContent = text;
 }
 
 function toggleModeUI() {
-  const modeSel = document.getElementById("authMode") || document.getElementById("mode");
-  const roleSel = document.getElementById("role") || document.getElementById("accountType");
+  const modeSel = $id("authMode") || $id("mode");
+  const roleSel = $id("role") || $id("accountType");
 
   const mode = modeSel?.value || "login";      // login | signup
   const role = roleSel?.value || "passenger";  // passenger | driver
 
-  const signupOnly = document.getElementById("signupOnly");
-  const driverOnly = document.getElementById("driverOnly");
+  const signupOnly = $id("signupOnly");
+  const driverOnly = $id("driverOnly");
 
-  const isSignup = (mode === "signup");
-  const isDriver = (role === "driver");
+  const isSignup = mode === "signup";
+  const isDriver = role === "driver";
 
   if (signupOnly) signupOnly.style.display = isSignup ? "" : "none";
   if (driverOnly) driverOnly.style.display = (isSignup && isDriver) ? "" : "none";
 
-  const form = document.getElementById("authForm");
+  const form = $id("authForm");
   const btn = form?.querySelector('button[type="submit"]');
   if (btn) btn.textContent = isSignup ? "تسجيل" : "متابعة";
 
   setMsg("");
 }
+
 async function initGovCenter() {
-  const govSelect = $id("gov");
-  const centerSelect = $id("center");
-  if (!govSelect || !centerSelect) return;
+  const gov = $id("gov");
+  const center = $id("center");
+  if (!gov || !center) return;
 
   try {
-    const data = await loadEgyptLocations(); // {govList, centersByGov}
+    const data = await loadEgyptLocations(); // { govList, centersByGov }
     const govList = data?.govList || [];
     const centersByGov = data?.centersByGov || {};
 
-    fillSelect(govSelect, govList, "اختر المحافظة");
-    fillSelect(centerSelect, [], "اختر المركز/المدينة");
+    fillSelect(gov, govList, "اختر المحافظة");
+    fillSelect(center, [], "اختر المركز/المدينة");
 
-    govSelect.addEventListener("change", () => {
-      const gov = govSelect.value || "";
-      const centers = centersByGov[gov] || [];
-      fillSelect(centerSelect, centers, "اختر المركز/المدينة");
+    gov.addEventListener("change", () => {
+      const g = gov.value || "";
+      fillSelect(center, centersByGov[g] || [], "اختر المركز/المدينة");
     });
   } catch (e) {
     console.error(e);
     setMsg("تعذر تحميل المحافظات/المراكز. تأكد من الاتصال بالإنترنت.");
   }
-} // ✅ اقفل initGovCenter هنا
-// --- Boot ---
-// --- Boot ---
-// --- Boot ---
-document.addEventListener("DOMContentLoaded", () => {
-  toggleModeUI();
+}
 
-  const modeSel = document.getElementById("authMode") || document.getElementById("mode");
-  const roleSel = document.getElementById("role") || document.getElementById("accountType");
+async function getProfile(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? snap.data() : null;
+}
 
-  if (modeSel) modeSel.addEventListener("change", toggleModeUI);
-  if (roleSel) roleSel.addEventListener("change", toggleModeUI);
-
-  initGovCenter();
-
-  const form = document.getElementById("authForm");
-  if (form) form.addEventListener("submit", onSubmit);
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) return;
-    await loadProfileAndRedirect(user.uid);
-  });
-});
-async function loadProfileAndRedirect(uid) {
-  // Read profile
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  const profile = snap.exists() ? snap.data() : null;
-
-  // Determine route
-  const role = profile?.role || "passenger";
-  const target = role === "driver" ? "./driver.html" : "./passenger.html";
-  location.href = target;
+async function redirectByProfile(uid) {
+  const p = await getProfile(uid);
+  const role = p?.activeRole || "passenger";
+  location.href = role === "driver" ? "./driver.html" : "./passenger.html";
 }
 
 async function onSubmit(e) {
   e.preventDefault();
-  const { mode, role } = getState();
+
+  const modeSel = $id("authMode") || $id("mode");
+  const roleSel = $id("role") || $id("accountType");
+
+  const mode = modeSel?.value || "login";
+  const role = roleSel?.value || "passenger";
 
   const email = ($id("email")?.value || "").trim();
   const password = ($id("password")?.value || "").trim();
-
   if (!email || !password) return setMsg("اكتب الإيميل وكلمة المرور.");
 
   try {
     if (mode === "login") {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      await loadProfileAndRedirect(cred.user.uid);
+      await redirectByProfile(cred.user.uid);
       return;
     }
 
@@ -129,12 +104,13 @@ async function onSubmit(e) {
     const center = ($id("center")?.value || "").trim();
 
     if (!name) return setMsg("اكتب الاسم.");
-    if (!phone) return setMsg("اكتب رقم الهاتف.");
+    if (!/^01\d{9}$/.test(phone)) return setMsg("رقم الهاتف غير صحيح.");
     if (!governorate) return setMsg("اختار المحافظة.");
     if (!center) return setMsg("اختار المركز/المدينة.");
 
     let vehicleType = "";
     let vehicleCode = "";
+
     if (role === "driver") {
       vehicleType = ($id("vehicleType")?.value || "").trim();
       vehicleCode = ($id("vehicleCode")?.value || "").trim();
@@ -144,65 +120,49 @@ async function onSubmit(e) {
 
     const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-    const profile = {
-      uid: cred.user.uid,
-      role,
-      name,
-      phone,
-      governorate,
-      center,
-      vehicleType: role === "driver" ? vehicleType : "",
-      vehicleCode: role === "driver" ? vehicleCode : "",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
+    // Store profile in the structure passenger.js/driver.js expect:
+    const passengerProfile = { name, phone, governorate, center };
+    const driverProfile =
+      role === "driver"
+        ? { name, phone, governorate, center, vehicleType, vehicleCode }
+        : null;
 
-    await setDoc(doc(db, "users", cred.user.uid), profile, { merge: true });
+    await setDoc(
+      doc(db, "users", cred.user.uid),
+      {
+        uid: cred.user.uid,
+        activeRole: role, // "passenger" | "driver"
+        profiles: {
+          passenger: passengerProfile,
+          driver: driverProfile,
+        },
+        passengerActiveRideId: null,
+        driverActiveRideId: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
-    await loadProfileAndRedirect(cred.user.uid);
+    await redirectByProfile(cred.user.uid);
   } catch (err) {
     console.error(err);
-    const msg = (err && err.message) ? String(err.message) : "حصل خطأ";
-    setMsg(msg);
+    setMsg(err?.message ? String(err.message) : "حصل خطأ");
   }
 }
 
-function init() {
-  // Wire events safely
-  $id("authMode")?.addEventListener("change", toggleModeUI);
-  $id("role")?.addEventListener("change", toggleModeUI);
+// ---- Boot (مرة واحدة فقط) ----
+document.addEventListener("DOMContentLoaded", () => {
+  toggleModeUI();
+  initGovCenter();
+
+  ($id("authMode") || $id("mode"))?.addEventListener("change", toggleModeUI);
+  ($id("role") || $id("accountType"))?.addEventListener("change", toggleModeUI);
+
   $id("authForm")?.addEventListener("submit", onSubmit);
 
-  toggleModeUI();
-  initGovCenter();
-}
-
-document.addEventListener("DOMContentLoaded", init);
-// --- Boot ---
-document.addEventListener("DOMContentLoaded", () => {
-  // Initial UI
-  toggleModeUI();
-
-  // Listen to mode/role changes (support old ids too)
-  (document.querySelector("#authMode") || document.querySelector("#mode"))?.addEventListener(
-    "change",
-    toggleModeUI
-  );
-  (document.querySelector("#role") || document.querySelector("#accountType"))?.addEventListener(
-    "change",
-    toggleModeUI
-  );
-
-  // Locations
-  initGovCenter();
-
-  // Submit
-  const form = document.getElementById("authForm");
-  if (form) form.addEventListener("submit", onSubmit);
-
-  // Redirect if already logged in
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
-    await loadProfileAndRedirect(user.uid);
+    await redirectByProfile(user.uid);
   });
 });
