@@ -1,6 +1,5 @@
-// firestore-api.js - CLEAN stable API (single source of truth)
+// firestore-api.js - Clean compatibility layer for Mashwarak
 import { db } from "./firebase-init.js";
-
 import {
   collection,
   doc,
@@ -16,9 +15,8 @@ import {
   deleteField,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-/* =========================
-   Profiles
-========================= */
+/* -------------------- Profiles -------------------- */
+
 export async function getMyProfile(uid) {
   if (!uid) return null;
   const ref = doc(db, "users", uid);
@@ -26,39 +24,50 @@ export async function getMyProfile(uid) {
   return snap.exists() ? snap.data() : null;
 }
 
+// Sometimes you had legacy fields; keep as safe no-op upgrade
+export async function migrateLegacyProfile(uid) {
+  if (!uid) return null;
+  const p = await getMyProfile(uid);
+  if (!p) return null;
+  // ensure minimal fields exist
+  await setDoc(
+    doc(db, "users", uid),
+    { uid, role: p.role || "passenger", updatedAt: serverTimestamp() },
+    { merge: true }
+  );
+  return await getMyProfile(uid);
+}
+
 export async function upsertUserProfile(uid, data = {}) {
   if (!uid) throw new Error("Missing uid");
-  const ref = doc(db, "users", uid);
   await setDoc(
-    ref,
-    {
-      uid,
-      ...data,
-      updatedAt: serverTimestamp(),
-      createdAt: data?.createdAt || serverTimestamp(),
-    },
+    doc(db, "users", uid),
+    { ...data, uid, updatedAt: serverTimestamp(), createdAt: data.createdAt || serverTimestamp() },
     { merge: true }
   );
   return true;
 }
 
-// Compatibility (some files import this)
-export async function migrateLegacyProfile(uid, data = {}) {
-  return upsertUserProfile(uid, data);
-}
+/* -------------------- Rides Core -------------------- */
 
-/* =========================
-   Ride core
-========================= */
 export async function createRideRequest(payload = {}) {
   const ridesRef = collection(db, "rides");
   const docRef = await addDoc(ridesRef, {
     ...payload,
-    status: payload?.status || "pending",
+    status: payload.status || "pending",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
   return { id: docRef.id };
+}
+
+export async function setRidePrivate(rideId, data = {}) {
+  if (!rideId) throw new Error("Missing rideId");
+  await updateDoc(doc(db, "rides", rideId), {
+    private: data,
+    updatedAt: serverTimestamp(),
+  });
+  return true;
 }
 
 export function listenRide(rideId, cb) {
@@ -69,60 +78,43 @@ export function listenRide(rideId, cb) {
   });
 }
 
-/* =========================
-   Ride private: rides/{rideId}/private/{scope}
-   scope: "passenger" | "driver"
-========================= */
-export async function setRidePrivate(rideId, scope = "passenger", data = {}) {
-  if (!rideId) throw new Error("Missing rideId");
-  const ref = doc(db, "rides", rideId, "private", scope);
-  await setDoc(ref, { ...data, updatedAt: serverTimestamp() }, { merge: true });
-  return true;
-}
+// Some old code expects listenRidePrivate => we alias to same document
+export const listenRidePrivate = listenRide;
 
-export function listenRidePrivate(rideId, scope = "passenger", cb) {
-  if (!rideId) return () => {};
-  const ref = doc(db, "rides", rideId, "private", scope);
-  return onSnapshot(ref, (snap) => cb(snap.exists() ? snap.data() : null));
-}
-
-/* =========================
-   Passenger "open ride"
-   (NO orderBy to avoid composite index)
-========================= */
+/**
+ * Listen passenger open ride without forcing composite index:
+ * We query by passengerId only, then filter statuses in code.
+ */
 export function listenMyOpenRideForPassenger(passengerId, cb) {
   if (!passengerId) return () => {};
-  const openStatuses = ["pending", "offer_sent", "accepted", "in_trip"];
-
   const q = query(
     collection(db, "rides"),
     where("passengerId", "==", passengerId),
-    where("status", "in", openStatuses),
-    limit(10)
+    limit(25)
   );
 
   return onSnapshot(q, (snap) => {
-    if (snap.empty) return cb(null);
+    const items = [];
+    snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
 
-    // pick "most recent" client-side using updatedAt if exists
-    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    items.sort((a, b) => {
-      const ta = a?.updatedAt?.toMillis ? a.updatedAt.toMillis() : 0;
-      const tb = b?.updatedAt?.toMillis ? b.updatedAt.toMillis() : 0;
-      return tb - ta;
-    });
-    cb(items[0] || null);
+    const open = items
+      .filter((x) => ["pending", "accepted", "in_trip"].includes(x.status))
+      .sort((a, b) => {
+        const ta = a.updatedAt?.seconds || 0;
+        const tb = b.updatedAt?.seconds || 0;
+        return tb - ta;
+      })[0] || null;
+
+    cb(open);
   });
 }
 
-/* =========================
-   Driver live location: driversLive/{driverId}
-========================= */
+/* -------------------- Driver Live -------------------- */
+
 export async function upsertDriverLive(driverId, pos) {
   if (!driverId) throw new Error("Missing driverId");
-  const ref = doc(db, "driversLive", driverId);
   await setDoc(
-    ref,
+    doc(db, "driversLive", driverId),
     {
       driverId,
       lat: pos?.lat ?? null,
@@ -136,84 +128,87 @@ export async function upsertDriverLive(driverId, pos) {
 
 export function listenDriverLive(driverId, cb) {
   if (!driverId) return () => {};
-  const ref = doc(db, "driversLive", driverId);
-  return onSnapshot(ref, (snap) => cb(snap.exists() ? snap.data() : null));
+  return onSnapshot(doc(db, "driversLive", driverId), (snap) => {
+    cb(snap.exists() ? snap.data() : null);
+  });
 }
 
-/* =========================
-   Driver pending rides list
-   (Avoid composite indexes: query by status only, filter client-side)
-========================= */
+/* -------------------- Driver pending rides list -------------------- */
+/**
+ * To avoid "query requires an index" for (status+gov+center+vehicleType),
+ * we only query by status, then filter client-side.
+ */
 export function listenPendingRides(filters = {}, cb) {
   const { governorate = "", center = "", vehicleType = "" } = filters || {};
 
-  const q = query(collection(db, "rides"), where("status", "==", "pending"), limit(100));
+  const q = query(collection(db, "rides"), where("status", "==", "pending"), limit(200));
 
   return onSnapshot(q, (snap) => {
     let items = [];
     snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
 
-    // client-side filters
-    if (governorate) items = items.filter((x) => (x.governorate || "") === governorate);
-    if (center) items = items.filter((x) => (x.center || "") === center);
-    if (vehicleType) items = items.filter((x) => (x.vehicleType || "") === vehicleType);
+    items = items.filter((x) => {
+      if (governorate && x.governorate !== governorate) return false;
+      if (center && x.center !== center) return false;
+      if (vehicleType && x.vehicleType !== vehicleType) return false;
+      return true;
+    });
 
-    // client-side sort by createdAt if present
     items.sort((a, b) => {
-      const ta = a?.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-      const tb = b?.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      const ta = a.createdAt?.seconds || 0;
+      const tb = b.createdAt?.seconds || 0;
       return tb - ta;
     });
 
-    cb(items);
+    cb(items.slice(0, 25));
   });
 }
 
-// Compatibility export name (some driver.js uses it)
-export const listenPendingRidesForDriver = listenPendingRides;
+/* -------------------- Ride actions -------------------- */
 
-/* =========================
-   Offer flow
-========================= */
-export async function sendDriverOffer(rideId, offer = {}) {
+export async function acceptRide(rideId, driverId, driverSnap = {}) {
   if (!rideId) throw new Error("Missing rideId");
+  if (!driverId) throw new Error("Missing driverId");
 
-  const ref = doc(db, "rides", rideId);
-  await updateDoc(ref, {
-    status: "offer_sent",
-    offer: {
-      driverId: offer?.driverId || "",
-      price: Number(offer?.price || 0),
-      driverSnap: offer?.driverSnap || {},
-      createdAt: serverTimestamp(),
-    },
+  await updateDoc(doc(db, "rides", rideId), {
+    status: "accepted",
+    driverId,
+    driverSnap: driverSnap || {},
+    acceptedAt: serverTimestamp(),
+    offer: deleteField(),
     updatedAt: serverTimestamp(),
   });
 
   return true;
 }
 
-export async function passengerAcceptOffer(rideId, opts = {}) {
-  if (!rideId) throw new Error("Missing rideId");
+// compat name
+export const acceptRideDirect = acceptRide;
 
-  const rideRef = doc(db, "rides", rideId);
-  const snap = await getDoc(rideRef);
+export async function passengerAcceptOffer(rideId, opts = {}) {
+  // If your flow uses offer object already on ride:
+  // we just mark accepted using offered driver
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  const snap = await getDoc(ref);
   if (!snap.exists()) throw new Error("Ride not found");
 
   const ride = snap.data();
-  if (opts?.passengerId && ride?.passengerId && opts.passengerId !== ride.passengerId) {
+  const offer = ride.offer;
+  if (!offer?.driverId) throw new Error("No offer to accept");
+
+  // Optional security check
+  if (opts?.passengerId && ride.passengerId && opts.passengerId !== ride.passengerId) {
     throw new Error("Not your ride");
   }
 
-  const offer = ride?.offer;
-  if (!offer?.driverId) throw new Error("No offer to accept");
-
-  await updateDoc(rideRef, {
+  await updateDoc(ref, {
     status: "accepted",
     driverId: offer.driverId,
     driverSnap: offer.driverSnap || {},
-    price: Number(offer.price || ride?.price || 0),
+    price: offer.price ?? ride.price ?? null,
     acceptedAt: serverTimestamp(),
+    offer: deleteField(),
     updatedAt: serverTimestamp(),
   });
 
@@ -222,17 +217,16 @@ export async function passengerAcceptOffer(rideId, opts = {}) {
 
 export async function passengerRejectOffer(rideId, opts = {}) {
   if (!rideId) throw new Error("Missing rideId");
-
-  const rideRef = doc(db, "rides", rideId);
-  const snap = await getDoc(rideRef);
+  const ref = doc(db, "rides", rideId);
+  const snap = await getDoc(ref);
   if (!snap.exists()) throw new Error("Ride not found");
 
   const ride = snap.data();
-  if (opts?.passengerId && ride?.passengerId && opts.passengerId !== ride.passengerId) {
+  if (opts?.passengerId && ride.passengerId && opts.passengerId !== ride.passengerId) {
     throw new Error("Not your ride");
   }
 
-  await updateDoc(rideRef, {
+  await updateDoc(ref, {
     status: "pending",
     offer: deleteField(),
     updatedAt: serverTimestamp(),
@@ -241,43 +235,9 @@ export async function passengerRejectOffer(rideId, opts = {}) {
   return true;
 }
 
-/* =========================
-   Driver accept directly (compat)
-   supports BOTH:
-   acceptRideDirect(rideId, driverId, driverSnap)
-   acceptRideDirect(rideId, {driverId, driverSnap})
-========================= */
-export async function acceptRideDirect(rideId, driverId, driverSnap = {}) {
-  if (!rideId) throw new Error("Missing rideId");
-
-  // support object signature
-  if (typeof driverId === "object" && driverId) {
-    const obj = driverId;
-    driverId = obj.driverId;
-    driverSnap = obj.driverSnap || {};
-  }
-
-  if (!driverId) throw new Error("Missing driverId");
-
-  const ref = doc(db, "rides", rideId);
-  await updateDoc(ref, {
-    status: "accepted",
-    driverId,
-    driverSnap: driverSnap || {},
-    acceptedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-
-  return true;
-}
-
-/* =========================
-   Trip lifecycle
-========================= */
 export async function startTrip(rideId) {
   if (!rideId) throw new Error("Missing rideId");
-  const ref = doc(db, "rides", rideId);
-  await updateDoc(ref, {
+  await updateDoc(doc(db, "rides", rideId), {
     status: "in_trip",
     startedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -287,8 +247,7 @@ export async function startTrip(rideId) {
 
 export async function completeTrip(rideId) {
   if (!rideId) throw new Error("Missing rideId");
-  const ref = doc(db, "rides", rideId);
-  await updateDoc(ref, {
+  await updateDoc(doc(db, "rides", rideId), {
     status: "completed",
     completedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -298,8 +257,7 @@ export async function completeTrip(rideId) {
 
 export async function cancelRide(rideId, reason = "") {
   if (!rideId) throw new Error("Missing rideId");
-  const ref = doc(db, "rides", rideId);
-  await updateDoc(ref, {
+  await updateDoc(doc(db, "rides", rideId), {
     status: "cancelled",
     cancelReason: reason || "",
     updatedAt: serverTimestamp(),
@@ -307,22 +265,14 @@ export async function cancelRide(rideId, reason = "") {
   return true;
 }
 
-/* =========================
-   Driver active ride cleanup (compat)
-========================= */
-export async function clearDriverActiveRide(driverId) {
-  if (!driverId) return true;
-  const ref = doc(db, "users", driverId);
-  try {
-    await updateDoc(ref, { activeRideId: null, updatedAt: serverTimestamp() });
-  } catch (e) {
-    // ignore
-  }
-  return true;
-}
+/* -------------------- Extra compat aliases -------------------- */
 
-/* =========================
-   Compatibility aliases
-========================= */
-export const completeRide = completeTrip;
+// some files import these names:
 export const cancelTrip = cancelRide;
+export const completeRide = completeTrip;
+
+/**
+ * Some older code might call completeTrip but expects completeTrip exists already (ok).
+ * Some other might call listenMyOpenRideForPassenger (exists).
+ * Some might call setRidePrivate / listenRidePrivate (exists).
+ */
