@@ -122,14 +122,6 @@ export async function acceptRide(rideId, driverId, driverSnap = {}) {
   });
 }
 /** Cancel ride (passenger or driver) */
-export async function cancelRide(rideId) {
-  if (!rideId) throw new Error("Missing rideId");
-  const ref = doc(db, "rides", rideId);
-  await updateDoc(ref, {
-    status: "cancelled",
-    updatedAt: serverTimestamp(),
-  });
-}
 // ===============================
 // Compatibility exports (fix missing named exports)
 // Put this at END of firestore-api.js
@@ -160,15 +152,6 @@ export async function completeTrip(rideId) {
 export const cancelTrip = cancelRide;
 export const completeRide = completeTrip;
 // ===== Missing Exports Fix =====
-
-export async function cancelRide(rideId) {
-  if (!rideId) throw new Error("Missing rideId");
-  const ref = doc(db, "rides", rideId);
-  await updateDoc(ref, {
-    status: "cancelled",
-    updatedAt: serverTimestamp(),
-  });
-}
 
 export async function completeTrip(rideId) {
   if (!rideId) throw new Error("Missing rideId");
