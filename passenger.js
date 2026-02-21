@@ -8,7 +8,6 @@ import {
   createRideRequest,
   setRidePrivate,
   listenRide,
-  listenRidePrivate,
   listenMyOpenRideForPassenger,
   listenDriverLive,
   passengerAcceptOffer,
