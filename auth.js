@@ -43,12 +43,11 @@ function toggleModeUI() {
   if (signupOnly) signupOnly.style.display = isSignup ? "" : "none";
   if (driverOnly) driverOnly.style.display = (isSignup && isDriver) ? "" : "none";
 
-  // زر submit
   const form = document.getElementById("authForm");
   const btn = form?.querySelector('button[type="submit"]');
   if (btn) btn.textContent = isSignup ? "تسجيل" : "متابعة";
 
-  setMsg('');
+  setMsg("");
 }
 async function initGovCenter() {
   const govSelect = $id("gov");
