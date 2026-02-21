@@ -194,21 +194,27 @@ export async function completeTrip(rideId) {
 }
 
 // -------- Compatibility aliases (some files import different names) --------
-export const cancelTrip = cancelRide;
-export const completeRide = completeTrip;
-// -------- Legacy profile migration (compat export) --------
-export async function migrateLegacyProfile(uid) {
-  // وظيفة توافقية: لو عندك بيانات قديمة بأسماء حقول مختلفة، انقلها هنا.
-  // دلوقتي هنخليها Safe No-Op علشان ميكسرش الاستيراد.
-  // تقدر تطورها بعدين لو عندك "legacyUsers" أو حقول قديمة.
-  if (!uid) return false;
+// ===============================
+// Compatibility aliases (DO NOT DUPLICATE)
+// ===============================
 
-  // مثال (اختياري) لو كنت مخزن قديمًا في users/{uid} لكن بحقول مختلفة:
-  // const p = await getMyProfile(uid);
-  // if (p && (p.phoneNumber && !p.phone)) {
-  //   await upsertUserProfile(uid, { phone: p.phoneNumber });
-  //   return true;
-  // }
+// Driver.js expects these names:
+export const acceptRideDirect = acceptRide;
+export const listenPendingRidesForDriver = listenPendingRides;
 
+// If your flow doesn't use offers, make this accept مباشرة
+export async function sendDriverOffer(rideId, driverId, driverSnap = {}) {
+  return acceptRide(rideId, driverId, driverSnap);
+}
+
+export async function startTrip(rideId) {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  await updateDoc(ref, { status: "started", updatedAt: serverTimestamp() });
+  return true;
+}
+
+export async function clearDriverActiveRide(/* driverId */) {
+  // No-op compatibility
   return true;
 }
