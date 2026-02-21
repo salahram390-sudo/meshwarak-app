@@ -19,10 +19,9 @@ import {
 } from "./firestore-api.js";
 
 import { createMap, addMarker, geocodeNominatim, routeOSRM, drawRoute } from "./map-kit.js";
-import { loadEgyptLocations, fillSelect } from "./egypt-locations.js";
 import { registerPWA, ensureNotifyPermission } from "./pwa.js";
 import { notify, toast } from "./notify.js";
-
+const { loadEgyptLocations, fillSelect } = window;
 const $ = (s)=>document.querySelector(s);
 
 await registerPWA();
