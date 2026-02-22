@@ -57,15 +57,7 @@
     </div>
 
     <div class="divider"></div>
-
-    <div class="pill" style="grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 6px;">
-      <div>
-        <div style="font-weight:900;">المنطقة (لإظهار السائقين المناسبين)</div>
-        <div style="opacity:.8; font-size:12px;">اختار المحافظة والمركز مرة واحدة ثم احفظ</div>
-      </div>
-    </div>
-
-    <div class="fieldRow" style="grid-column:1/-1;">
+    <div class="fieldRow">
       <div class="field">
         <label class="label">المحافظة</label>
         <select id="p_gov" class="select"></select>
@@ -75,8 +67,9 @@
         <select id="p_center" class="select"></select>
       </div>
     </div>
-    <button id="p_saveArea" class="btn btn-secondary" type="button" style="width:100%; margin-top:10px; grid-column:1/-1;">حفظ المنطقة</button>
+    <button id="p_saveArea" class="btn ghost" style="margin-top:10px;">حفظ المنطقة</button>
 
+    <div class="divider"></div>
 
     <label class="field" style="grid-column: 1 / -1;">
       <span>نوع المركبة</span>
@@ -205,7 +198,5 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module" src="./passenger.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </body>
 </html>
