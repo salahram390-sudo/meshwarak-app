@@ -330,9 +330,10 @@ function renderRideUI(ride){
     if(offerBox) offerBox.style.display="none";
   }
 
- // show driver data if accepted
-if(ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed"){
-  const d = ride.driverSnap;
+  // show driver data if accepted
+  if(ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed"){
+    const d = ride.driverSnap;
+
   // Private driver contact (available after acceptance)
   if(privateUnsub){ privateUnsub(); privateUnsub=null; }
   if((ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed") && ride.driverId){
@@ -510,8 +511,7 @@ $("#notifyBtn")?.addEventListener("click", async ()=>{
   const p = await ensureNotifyPermission();
   toast(p === "granted" ? "تم تفعيل الإشعارات ✅" : "لم يتم تفعيل الإشعارات");
 });
-}
-}
+
 // ===== Auth guard + listeners =====
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href="login.html"; return; }

@@ -1,5 +1,5 @@
 // service-worker.js
-const CACHE_NAME = 'meshwarak-v999';
+const CACHE_NAME = 'meshwarak-v1001';
 const ASSETS = [
   "./",
   "./index.html",
@@ -17,7 +17,7 @@ const ASSETS = [
   "./pwa.js",
   "./notify.js",
   "./icons/icon-192.png",
- // "./icons/icon-512.png",
+  // "./icons/icon-512.png", // غير موجود حالياً
   "./manifest.webmanifest"
 ];
 
