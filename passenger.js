@@ -331,8 +331,9 @@ function renderRideUI(ride){
   }
 
  // show driver data if accepted
-const d = ride.driverSnap;
-
+if(ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed"){
+  const d = ride.driverSnap;
+} 
   // Private driver contact (available after acceptance)
   if(privateUnsub){ privateUnsub(); privateUnsub=null; }
   if((ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed") && ride.driverId){
