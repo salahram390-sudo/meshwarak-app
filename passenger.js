@@ -19,6 +19,7 @@ import {
   passengerRejectOffer,
   cancelRide,
   completeTrip
+  migrateLegacyProfile,
 } from "./firestore-api.js";
 
 import { createMap, addMarker, geocodeNominatim, routeOSRM, drawRoute } from "./map-kit.js";
@@ -61,6 +62,50 @@ function estimatePrice(distance_m, vehicle) {
   const base = { tuktuk:10, motor_delivery:12, car:18, microbus:25, tamanya:22, caboot:30 }[vehicle] ?? 15;
   const perKm = { tuktuk:4, motor_delivery:4, car:6, microbus:8, tamanya:7, caboot:10 }[vehicle] ?? 5;
   return base + perKm * (distance_m / 1000);
+}
+
+
+async function ensureLocations(){
+  if(!locationsData) locationsData = await loadEgyptLocations();
+  return locationsData;
+}
+async function initPassengerAreaUI(){
+  const govSel = document.getElementById("p_gov");
+  const centerSel = document.getElementById("p_center");
+  const saveBtn = document.getElementById("p_saveArea");
+  if(!govSel || !centerSel || !saveBtn) return;
+
+  const data = await ensureLocations();
+  fillSelect(govSel, data.govList, "اختر المحافظة");
+  const currentGov = myPassenger?.governorate || "";
+  govSel.value = currentGov;
+  fillSelect(centerSel, data.centersByGov[currentGov] || [], "اختر المركز/المدينة");
+  centerSel.value = myPassenger?.center || "";
+
+  govSel.onchange = ()=>{
+    const g = govSel.value;
+    fillSelect(centerSel, data.centersByGov[g] || [], "اختر المركز/المدينة");
+    centerSel.value = "";
+  };
+
+  saveBtn.onclick = async ()=>{
+    const governorate = govSel.value;
+    const center = centerSel.value;
+    if(!governorate) return setMsg("اختار المحافظة");
+    if(!center) return setMsg("اختار المركز/المدينة");
+    // update profile passenger area + keep driver profile as-is
+    const passengerProfile = { ...(profile?.profiles?.passenger || myPassenger || {}), governorate, center };
+    await upsertUserProfile(auth.currentUser.uid, {
+      activeRole: "passenger",
+      profiles: {
+        passenger: passengerProfile,
+        driver: profile?.profiles?.driver || {},
+      }
+    });
+    myPassenger = passengerProfile;
+    toast("تم حفظ المنطقة ✅");
+    setMsg("");
+  };
 }
 
 // ===== Price slider =====
@@ -185,9 +230,9 @@ async function requestRide(){
   };
 
   setMsg("جاري إنشاء الطلب...");
-  const res = await createRideRequest(payload);
-currentRideId = res.id;
-await setRidePrivate(currentRideId, "passenger", { phone: myPassenger.phone || "" });
+  currentRideId = await createRideRequest(payload);
+  // store contact privately (not visible before acceptance)
+  await setRidePrivate(currentRideId, "passenger", { phone: myPassenger.phone || "" });
   toast("تم إرسال الطلب ✅");
   setMsg("");
 }
@@ -237,11 +282,13 @@ function stopLive(){
   if(privateUnsub){ privateUnsub(); privateUnsub=null; }
 }
 
+// ===== UI State update =====
 function renderRideUI(ride){
-  currentRide = ride || null;
+  currentRide = ride;
   currentRideId = ride?.id || currentRideId;
 
-  setRideState(ride?.status || "—");
+  const state = ride ? ride.status : "—";
+  setRideState(state || "—");
 
   const offerBox = $("#offerBox");
   const offerText = $("#offerText");
@@ -254,57 +301,58 @@ function renderRideUI(ride){
   const reqBtn = $("#requestRide");
 
   if(!ride){
-    if(offerBox) offerBox.style.display = "none";
-    if(trackBtn) trackBtn.disabled = true;
-    if(cancelBtn) cancelBtn.disabled = true;
-    if(completeBtn) completeBtn.disabled = true;
-    if(reqBtn) reqBtn.disabled = false;
-    setMsg("");
-    stopLive();
+    if(offerBox) offerBox.style.display="none";
+    if(trackBtn) trackBtn.disabled=true;
+    if(cancelBtn) cancelBtn.disabled=true;
+    if(completeBtn) completeBtn.disabled=true;
+    if(reqBtn) reqBtn.disabled=false;
     return;
   }
 
-  const st = ride.status || "";
+  const isOpen = ["pending","offer_sent","accepted","in_trip"].includes(ride.status);
+  if(reqBtn) reqBtn.disabled = isOpen; // prevent new
+  if(cancelBtn) cancelBtn.disabled = !isOpen || ["completed","cancelled"].includes(ride.status);
 
-  const isActive = ["pending","offer_sent","accepted","in_trip"].includes(st);
-  if(reqBtn) reqBtn.disabled = isActive;
-  if(cancelBtn) cancelBtn.disabled = !isActive || ["completed","cancelled"].includes(st);
-
-  const canTrack = ["accepted","in_trip","completed"].includes(st) && !!ride.driverId;
+  const canTrack = ["accepted","in_trip","completed"].includes(ride.status) && !!ride.driverId;
   if(trackBtn) trackBtn.disabled = !canTrack;
 
-  const canComplete = ["accepted","in_trip"].includes(st);
+  const canComplete = ["accepted","in_trip"].includes(ride.status);
   if(completeBtn) completeBtn.disabled = !canComplete;
 
-  if(st === "offer_sent" && ride.offer?.price != null){
+  // Offer
+  if(ride.status === "offer_sent" && ride.offer?.price){
     if(offerText) offerText.textContent = `السعر المقترح: ${ride.offer.price} جنيه`;
-    if(offerBox) offerBox.style.display = "";
-    if(acceptBtn) acceptBtn.disabled = false;
-    if(rejectBtn) rejectBtn.disabled = false;
+    if(offerBox) offerBox.style.display="";
+    if(acceptBtn) acceptBtn.disabled=false;
+    if(rejectBtn) rejectBtn.disabled=false;
     notify("مشوارك", "وصلك عرض سعر من السائق");
   }else{
-    if(offerBox) offerBox.style.display = "none";
+    if(offerBox) offerBox.style.display="none";
   }
 
-  if(st === "pending"){
-    setMsg("تم إرسال الطلب… في انتظار السائق");
-  }else if(st === "offer_sent"){
-    setMsg("فيه عرض سعر — اختر قبول/رفض");
-  }else if(st === "accepted" || st === "in_trip"){
-    const d = ride.driverSnap || {};
-    const price = (ride.finalPrice ?? ride.price);
-    setMsg(d?.name ? `السائق: ${d.name} | السعر: ${price ?? "—"} جنيه` : `تم القبول ✅ | السعر: ${price ?? "—"} جنيه`);
-  }else if(st === "cancelled"){
+  // show driver data if accepted
+  if(ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed"){
+    const d = ride.driverSnap;
+
+  // Private driver contact (available after acceptance)
+  if(privateUnsub){ privateUnsub(); privateUnsub=null; }
+  if((ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed") && ride.driverId){
+    
+    if(d?.name){
+      setMsg(`السائق: ${d.name || "—"} | السعر النهائي: ${(ride.finalPrice ?? ride.price) ?? "—"} جنيه`);
+    }else{
+      setMsg(`تم قبول الطلب ✅ | السعر النهائي: ${(ride.finalPrice ?? ride.price) ?? "—"} جنيه`);
+    }
+  }
+  if(ride.status === "cancelled"){
     setMsg("تم إلغاء الطلب");
     stopLive();
-  }else if(st === "completed"){
+  }
+  if(ride.status === "completed"){
     setMsg("تمت الرحلة ✅");
     stopLive();
-  }else{
-    setMsg("");
   }
 }
-
 
 // ===== Bottom sheet drag =====
 const sheet = $("#sheet");
@@ -468,6 +516,10 @@ $("#notifyBtn")?.addEventListener("click", async ()=>{
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href="login.html"; return; }
 
+  profile = await getMyProfile(user.uid);
+  await migrateLegacyProfile(user.uid);
+  if(!profile) profile = await getMyProfile(user.uid);
+
   // ensure role
   if((profile?.activeRole || "passenger") !== "passenger"){
     window.location.href = "driver.html";
@@ -476,6 +528,7 @@ onAuthStateChanged(auth, async (user)=>{
 
   myPassenger = profile?.profiles?.passenger || null;
   $("#who").textContent = `راكب — ${myPassenger?.name || "—"}`;
+  initPassengerAreaUI().catch(()=>{});
 
   // load open ride listener
   if(openRideUnsub) openRideUnsub();

@@ -15,6 +15,7 @@ import {
   completeTrip,
   upsertDriverLive,
   clearDriverActiveRide
+  migrateLegacyProfile,
 } from "./firestore-api.js";
 
 import { createMap, addMarker } from "./map-kit.js";
@@ -66,6 +67,52 @@ async function setMyLocation(){
       { enableHighAccuracy:true, timeout:12000 }
     );
   });
+}
+
+
+async function ensureLocations(){
+  if(!locationsData) locationsData = await loadEgyptLocations();
+  return locationsData;
+}
+async function initDriverAreaUI(){
+  const govSel = document.getElementById("d_gov");
+  const centerSel = document.getElementById("d_center");
+  const saveBtn = document.getElementById("d_saveArea");
+  if(!govSel || !centerSel || !saveBtn) return;
+
+  const data = await ensureLocations();
+  fillSelect(govSel, data.govList, "اختر المحافظة");
+  const currentGov = myDriver?.governorate || "";
+  govSel.value = currentGov;
+  fillSelect(centerSel, data.centersByGov[currentGov] || [], "اختر المركز/المدينة");
+  centerSel.value = myDriver?.center || "";
+
+  govSel.onchange = ()=>{
+    const g = govSel.value;
+    fillSelect(centerSel, data.centersByGov[g] || [], "اختر المركز/المدينة");
+    centerSel.value = "";
+  };
+
+  saveBtn.onclick = async ()=>{
+    const governorate = govSel.value;
+    const center = centerSel.value;
+    if(!governorate) return setMsg("اختار المحافظة");
+    if(!center) return setMsg("اختار المركز/المدينة");
+    const driverProfile = { ...(profile?.profiles?.driver || myDriver || {}), governorate, center };
+    await upsertUserProfile(auth.currentUser.uid, {
+      activeRole: "driver",
+      profiles: {
+        passenger: profile?.profiles?.passenger || {},
+        driver: driverProfile
+      }
+    });
+    myDriver = driverProfile;
+    document.getElementById("driverFilter").textContent = `${myDriver?.governorate || "—"} • ${myDriver?.center || "—"} • ${myDriver?.vehicleType || "—"}`;
+    toast("تم حفظ المنطقة ✅");
+    // restart pending listener
+    if(pendingUnsub){ pendingUnsub(); pendingUnsub=null; }
+    startPendingListener();
+  };
 }
 
 function renderList(rides){
@@ -434,13 +481,18 @@ if(grab){
 // ===== Auth guard + listeners =====
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href="login.html"; return; }
-  
+
+  profile = await getMyProfile(user.uid);
+  await migrateLegacyProfile(user.uid);
+  if(!profile) profile = await getMyProfile(user.uid);
+
   if((profile?.activeRole || "passenger") !== "driver"){
     window.location.href = "passenger.html";
     return;
   }
 
   myDriver = profile?.profiles?.driver || null;
+  initDriverAreaUI().catch(()=>{});
 
   // If driver profile missing, force switch modal to fill
   if(!myDriver?.vehicleType || !myDriver?.vehicleCode){
