@@ -1,17 +1,11 @@
-// auth.js (clean) - robust UI toggling + locations + Firebase auth
+// auth.js (module) - robust UI toggling + locations + Firebase auth
 import { auth, db } from "./firebase-init.js";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import {
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
+import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { loadEgyptLocations, fillSelect } from "./egypt-locations.js";
 
 const $id = (id) => document.getElementById(id);
@@ -21,59 +15,28 @@ function setMsg(text) {
   if (el) el.textContent = text || "";
 }
 
-function show(el, on) {
-  if (!el) return;
-  el.style.display = on ? "" : "none";
-}
-
-function getState() {
-  // support multiple ids
-  const modeEl = $id("authMode") || $id("mode"); // login|signup or login|register
-  const roleEl = $id("role") || $id("accountType"); // passenger|driver
-  const rawMode = (modeEl?.value || "login").toLowerCase();
-  const mode = rawMode === "register" ? "signup" : rawMode; // normalize
-  const role = (roleEl?.value || "passenger").toLowerCase();
-  return { mode, role };
-}
-
 function toggleModeUI() {
-  const { mode, role } = getState();
+  const modeSel = document.getElementById("authMode") || document.getElementById("mode");
+  const roleSel = document.getElementById("role") || document.getElementById("accountType");
 
-  // support old wrappers if exist
-  const signupOnly = $id("signupOnly"); // optional wrapper
-  const driverOnly = $id("driverOnly"); // optional wrapper
+  const mode = modeSel?.value || "login";      // login | signup
+  const role = roleSel?.value || "passenger";  // passenger | driver
 
-  // legacy wrappers (some old files)
-  const nameWrap = $id("nameWrap");
-  const phoneWrap = $id("phoneWrap");
-  const govWrap = $id("govWrap");
-  const centerWrap = $id("centerWrap");
-
-  const regBox = document.querySelector("#regFields") || document.querySelector("#registerFields");
+  // wrappers (IDs الموجودة في login.html عندك)
   const loginBox = document.querySelector("#loginFields");
-  const driverFields = document.querySelector("#driverFields");
+  const regBox = document.querySelector("#regFields") || document.querySelector("#registerFields");
+  const driverBox = document.querySelector("#driverFields");
 
-  const isSignup = mode === "signup";
-  const isDriver = role === "driver";
+  const isSignup = (mode === "signup" || mode === "register");
+  const isDriver = (role === "driver");
 
-  // If page uses grouped boxes
-  if (regBox || loginBox || driverFields) {
-    show(loginBox, !isSignup);
-    show(regBox, isSignup);
-    show(driverFields, isSignup && isDriver);
-  }
+  if (loginBox) loginBox.style.display = isSignup ? "none" : "";
+  if (regBox) regBox.style.display = isSignup ? "" : "none";
+  if (driverBox) driverBox.style.display = (isSignup && isDriver) ? "" : "none";
 
-  // If page uses wrappers per-field
-  show(nameWrap, isSignup);
-  show(phoneWrap, isSignup);
-  show(govWrap, isSignup);
-  show(centerWrap, isSignup);
-  show(signupOnly, isSignup);
-  show(driverOnly, isSignup && isDriver);
-
-  // submit button label
-  const form = $id("authForm");
-  const btn = form?.querySelector('button[type="submit"]') || $id("submitBtn");
+  // زر submit
+  const form = document.getElementById("authForm");
+  const btn = form?.querySelector('button[type="submit"]');
   if (btn) btn.textContent = isSignup ? "تسجيل" : "متابعة";
 
   setMsg("");
@@ -103,106 +66,104 @@ async function initGovCenter() {
   }
 }
 
-async function loadProfile(uid) {
+async function loadProfileAndRedirect(uid) {
+  // Read profile
   const ref = doc(db, "users", uid);
   const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
-}
+  const profile = snap.exists() ? snap.data() : null;
 
-async function saveProfile(uid, data) {
-  const ref = doc(db, "users", uid);
-  await setDoc(
-    ref,
-    {
-      ...data,
-      uid,
-      updatedAt: serverTimestamp(),
-      createdAt: data?.createdAt || serverTimestamp(),
-    },
-    { merge: true }
-  );
-  return true;
+  const role = profile?.role || "passenger";
+  const target = role === "driver" ? "./driver.html" : "./passenger.html";
+  location.href = target;
 }
 
 async function onSubmit(e) {
   e.preventDefault();
-  const { mode, role } = getState();
+
+  const modeSel = document.getElementById("authMode") || document.getElementById("mode");
+  const roleSel = document.getElementById("role") || document.getElementById("accountType");
+  const mode = modeSel?.value || "login";
+  const role = roleSel?.value || "passenger";
+  const isSignup = (mode === "signup" || mode === "register");
 
   const email = ($id("email")?.value || "").trim();
   const password = ($id("password")?.value || "").trim();
-  if (!email || !password) return setMsg("اكتب الإيميل وكلمة المرور.");
 
-  setMsg("");
+  if (!email || !password) return setMsg("اكتب الإيميل وكلمة المرور");
 
   try {
-    if (mode === "login") {
-      await signInWithEmailAndPassword(auth, email, password);
-      return; // redirect happens in onAuthStateChanged
+    setMsg("");
+
+    let userCred;
+    if (isSignup) {
+      userCred = await createUserWithEmailAndPassword(auth, email, password);
+    } else {
+      userCred = await signInWithEmailAndPassword(auth, email, password);
     }
 
-    // signup
-    const name = ($id("name")?.value || "").trim();
-    const phone = ($id("phone")?.value || "").trim();
-    const governorate = ($id("gov")?.value || "").trim();
-    const center = ($id("center")?.value || "").trim();
-    const vehicleType = ($id("vehicleType")?.value || "").trim();
-    const vehicleCode = ($id("vehicleCode")?.value || "").trim();
+    const uid = userCred.user.uid;
 
-    if (!name) return setMsg("اكتب الاسم.");
-    if (!phone) return setMsg("اكتب رقم الهاتف.");
-    if (!governorate) return setMsg("اختر المحافظة.");
-    if (!center) return setMsg("اختر المركز/المدينة.");
+    if (isSignup) {
+      // Collect signup fields if exist
+      const name = ($id("name")?.value || "").trim();
+      const phone = ($id("phone")?.value || "").trim();
+      const governorate = ($id("gov")?.value || "").trim();
+      const center = ($id("center")?.value || "").trim();
+      const vehicleType = ($id("vehicleType")?.value || "").trim();
+      const vehicleCode = ($id("vehicleCode")?.value || "").trim();
 
-    if (role === "driver") {
-      if (!vehicleType) return setMsg("اختر نوع المركبة.");
-      if (!vehicleCode) return setMsg("اكتب كود المركبة.");
+      // Basic validation for signup
+      if (!name) return setMsg("اكتب الاسم");
+      if (!phone) return setMsg("اكتب رقم الهاتف");
+      if (!governorate) return setMsg("اختر المحافظة");
+      if (!center) return setMsg("اختر المركز/المدينة");
+
+      if (role === "driver") {
+        if (!vehicleType) return setMsg("اختر نوع المركبة");
+        if (!vehicleCode) return setMsg("اكتب كود المركبة");
+      }
+
+      const ref = doc(db, "users", uid);
+      await setDoc(
+        ref,
+        {
+          uid,
+          role,
+          name,
+          phone,
+          governorate,
+          center,
+          vehicleType: role === "driver" ? vehicleType : null,
+          vehicleCode: role === "driver" ? vehicleCode : null,
+          email,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
     }
 
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-
-    await saveProfile(cred.user.uid, {
-      role,
-      name,
-      phone,
-      governorate,
-      center,
-      vehicleType: role === "driver" ? vehicleType : "",
-      vehicleCode: role === "driver" ? vehicleCode : "",
-    });
-  } catch (e) {
-    console.error(e);
-    setMsg(e?.message || "حصل خطأ.");
+    await loadProfileAndRedirect(uid);
+  } catch (err) {
+    console.error(err);
+    setMsg(err?.message || "حدث خطأ");
   }
 }
 
 // --- Boot ---
 document.addEventListener("DOMContentLoaded", () => {
   toggleModeUI();
-
-  (document.querySelector("#authMode") || document.querySelector("#mode"))?.addEventListener(
-    "change",
-    toggleModeUI
-  );
-  (document.querySelector("#role") || document.querySelector("#accountType"))?.addEventListener(
-    "change",
-    toggleModeUI
-  );
-
   initGovCenter();
 
-  const form = $id("authForm");
+  (document.querySelector("#authMode") || document.querySelector("#mode"))?.addEventListener("change", toggleModeUI);
+  (document.querySelector("#role") || document.querySelector("#accountType"))?.addEventListener("change", toggleModeUI);
+
+  const form = document.getElementById("authForm");
   if (form) form.addEventListener("submit", onSubmit);
 
-  // redirect if already logged in AND profile exists
+  // Redirect if already logged in
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
-    try {
-      const profile = await loadProfile(user.uid);
-      if (!profile) return; // stay on login if no profile yet
-      const role = (profile.role || "passenger").toLowerCase();
-      location.href = role === "driver" ? "./driver.html" : "./passenger.html";
-    } catch (e) {
-      console.error(e);
-    }
+    await loadProfileAndRedirect(user.uid);
   });
 });
