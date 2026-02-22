@@ -238,11 +238,10 @@ function stopLive(){
 }
 
 function renderRideUI(ride){
-  currentRide = ride;
+  currentRide = ride || null;
   currentRideId = ride?.id || currentRideId;
 
-  const state = ride ? ride.status : "—";
-  setRideState(state || "—");
+  setRideState(ride?.status || "—");
 
   const offerBox = $("#offerBox");
   const offerText = $("#offerText");
@@ -254,15 +253,61 @@ function renderRideUI(ride){
   const completeBtn = $("#completeRide");
   const reqBtn = $("#requestRide");
 
+  // no ride
   if(!ride){
-    if(offerBox) offerBox.style.display="none";
-    if(trackBtn) trackBtn.disabled=true;
-    if(cancelBtn) cancelBtn.disabled=true;
-    if(completeBtn) completeBtn.disabled=true;
-    if(reqBtn) reqBtn.disabled=false;
+    if(offerBox) offerBox.style.display = "none";
+    if(trackBtn) trackBtn.disabled = true;
+    if(cancelBtn) cancelBtn.disabled = true;
+    if(completeBtn) completeBtn.disabled = true;
+    if(reqBtn) reqBtn.disabled = false;
     setMsg("");
+    stopLive();
     return;
   }
+
+  const st = ride.status || "";
+
+  // buttons state
+  const isActive = ["pending","offer_sent","accepted","in_trip"].includes(st);
+  if(reqBtn) reqBtn.disabled = isActive;
+  if(cancelBtn) cancelBtn.disabled = !isActive || ["completed","cancelled"].includes(st);
+
+  const canTrack = ["accepted","in_trip","completed"].includes(st) && !!ride.driverId;
+  if(trackBtn) trackBtn.disabled = !canTrack;
+
+  const canComplete = ["accepted","in_trip"].includes(st);
+  if(completeBtn) completeBtn.disabled = !canComplete;
+
+  // offer UI
+  if(st === "offer_sent" && ride.offer?.price != null){
+    if(offerText) offerText.textContent = `السعر المقترح: ${ride.offer.price} جنيه`;
+    if(offerBox) offerBox.style.display = "";
+    if(acceptBtn) acceptBtn.disabled = false;
+    if(rejectBtn) rejectBtn.disabled = false;
+    notify("مشوارك", "وصلك عرض سعر من السائق");
+  }else{
+    if(offerBox) offerBox.style.display = "none";
+  }
+
+  // messages
+  if(st === "pending"){
+    setMsg("تم إرسال الطلب… في انتظار السائق");
+  }else if(st === "offer_sent"){
+    setMsg("فيه عرض سعر — اختر قبول/رفض");
+  }else if(st === "accepted" || st === "in_trip"){
+    const d = ride.driverSnap || {};
+    const price = (ride.finalPrice ?? ride.price);
+    setMsg(d?.name ? `السائق: ${d.name} | السعر: ${price ?? "—"} جنيه` : `تم القبول ✅ | السعر: ${price ?? "—"} جنيه`);
+  }else if(st === "cancelled"){
+    setMsg("تم إلغاء الطلب");
+    stopLive();
+  }else if(st === "completed"){
+    setMsg("تمت الرحلة ✅");
+    stopLive();
+  }else{
+    setMsg("");
+  }
+}
 
   const isOpen = ["pending","offer_sent","accepted","in_trip"].includes(ride.status);
   if(reqBtn) reqBtn.disabled = isOpen;
