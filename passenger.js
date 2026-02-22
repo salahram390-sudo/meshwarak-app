@@ -551,3 +551,4 @@ onAuthStateChanged(auth, async (user)=>{
   // initial location
   setMyLocation().catch(()=>{});
 });
+}
