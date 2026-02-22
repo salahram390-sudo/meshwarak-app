@@ -8,7 +8,7 @@ import {
   listenPendingRidesForDriver,
   listenRide,
   acceptRideDirect,
-  sendDriverOffer,
+  driverSendOffer,
   setRidePrivate,
   cancelRide,
   startTrip,
@@ -180,7 +180,7 @@ async function acceptSelectedRideDirect(rideId, rideData){
     vehicleCode: myDriver.vehicleCode || ""
   };
 
-  await acceptRideDirect(rideId, { driverId: auth.currentUser.uid, driverSnap });
+  await acceptRideDirect(rideId, auth.currentUser.uid, driverSnap);
   // store driver contact privately
   await setRidePrivate(rideId, "driver", { phone: myDriver.phone || "" });
   toast("تم قبول الطلب ✅");
@@ -201,7 +201,7 @@ async function sendOffer(){
     vehicleCode: myDriver.vehicleCode || ""
   };
 
-  await sendDriverOffer(selectedRideId, { driverId: auth.currentUser.uid, price: offer, driverSnap });
+  await driverSendOffer(selectedRideId, { driverId: auth.currentUser.uid, price: offer, driverSnap });
   // pre-store contact privately (will be readable after acceptance by rules)
   await setRidePrivate(selectedRideId, "driver", { phone: myDriver.phone || "" });
   toast("تم إرسال العرض ✅");

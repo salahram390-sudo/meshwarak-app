@@ -1,17 +1,4 @@
-<!doc
-          <div class="divider"></div>
-          <div class="fieldRow">
-            <div class="field">
-              <label class="label">المحافظة</label>
-              <select id="p_gov" class="select"></select>
-            </div>
-            <div class="field">
-              <label class="label">المركز / المدينة</label>
-              <select id="p_center" class="select"></select>
-            </div>
-          </div>
-          <button id="p_saveArea" class="btn btn-secondary" style="width:100%; margin-top:10px;">حفظ المنطقة</button>
-type html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8"/>
@@ -70,6 +57,26 @@ type html>
     </div>
 
     <div class="divider"></div>
+
+    <div class="pill" style="grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 6px;">
+      <div>
+        <div style="font-weight:900;">المنطقة (لإظهار السائقين المناسبين)</div>
+        <div style="opacity:.8; font-size:12px;">اختار المحافظة والمركز مرة واحدة ثم احفظ</div>
+      </div>
+    </div>
+
+    <div class="fieldRow" style="grid-column:1/-1;">
+      <div class="field">
+        <label class="label">المحافظة</label>
+        <select id="p_gov" class="select"></select>
+      </div>
+      <div class="field">
+        <label class="label">المركز / المدينة</label>
+        <select id="p_center" class="select"></select>
+      </div>
+    </div>
+    <button id="p_saveArea" class="btn btn-secondary" type="button" style="width:100%; margin-top:10px; grid-column:1/-1;">حفظ المنطقة</button>
+
 
     <label class="field" style="grid-column: 1 / -1;">
       <span>نوع المركبة</span>
