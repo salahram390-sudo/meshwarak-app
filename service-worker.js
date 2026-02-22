@@ -1,5 +1,5 @@
 // service-worker.js
-const CACHE_NAME = 'meshwarak-v1001';
+const CACHE_NAME = 'meshwarak-v1002';
 const ASSETS = [
   "./",
   "./index.html",
