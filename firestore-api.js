@@ -1,4 +1,4 @@
-// firestore-api.js (clean) - stable exports for passenger.js / driver.js
+// Firestore API for Mashwarak (stable exports used by auth/passenger/driver)
 import { db } from "./firebase-init.js";
 import {
   collection,
@@ -13,11 +13,9 @@ import {
   orderBy,
   limit,
   serverTimestamp,
-  deleteField,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-/** ============== Profiles ============== **/
-
+/** Read profile stored at users/{uid}. Returns object or null. */
 export async function getMyProfile(uid) {
   if (!uid) return null;
   const ref = doc(db, "users", uid);
@@ -25,6 +23,7 @@ export async function getMyProfile(uid) {
   return snap.exists() ? snap.data() : null;
 }
 
+/** Upsert profile at users/{uid}. */
 export async function upsertUserProfile(uid, data) {
   if (!uid) throw new Error("Missing uid");
   const ref = doc(db, "users", uid);
@@ -41,23 +40,7 @@ export async function upsertUserProfile(uid, data) {
   return true;
 }
 
-// Migration helper (compat)
-export async function migrateLegacyProfile(uid) {
-  // In your current app, legacy migration may not be needed.
-  // Keep it to satisfy imports and allow future extension.
-  if (!uid) return false;
-  const profile = await getMyProfile(uid);
-  if (!profile) return false;
-  // Example: normalize role strings
-  const role = (profile.role || "passenger").toLowerCase();
-  if (role !== profile.role) {
-    await upsertUserProfile(uid, { role });
-  }
-  return true;
-}
-
-/** ============== Rides ============== **/
-
+/** Create ride request in rides collection. Returns {id}. */
 export async function createRideRequest(payload) {
   const ridesRef = collection(db, "rides");
   const docRef = await addDoc(ridesRef, {
@@ -69,34 +52,19 @@ export async function createRideRequest(payload) {
   return { id: docRef.id };
 }
 
-// listen one ride (public-ish)
+/** Listen single ride doc. Returns unsubscribe fn. */
 export function listenRide(rideId, cb) {
   if (!rideId) return () => {};
   const ref = doc(db, "rides", rideId);
-  return onSnapshot(ref, (snap) => cb(snap.exists() ? { id: snap.id, ...snap.data() } : null));
-}
-
-// Private listen (compat name)
-export const listenRidePrivate = listenRide;
-
-export function listenMyOpenRideForPassenger(passengerId, cb) {
-  // "open" ride = pending/accepted/in_trip (not completed/cancelled)
-  if (!passengerId) return () => {};
-  const q = query(
-    collection(db, "rides"),
-    where("passengerId", "==", passengerId),
-    where("status", "in", ["pending", "accepted", "in_trip"]),
-    orderBy("updatedAt", "desc"),
-    limit(1)
-  );
-  return onSnapshot(q, (snap) => {
-    if (snap.empty) return cb(null);
-    const d = snap.docs[0];
-    cb({ id: d.id, ...d.data() });
+  return onSnapshot(ref, (snap) => {
+    cb(snap.exists() ? { id: snap.id, ...snap.data() } : null);
   });
 }
 
-/** Driver live location store: driversLive/{driverId} */
+/** Alias used by older files */
+export const listenRidePrivate = listenRide;
+
+/** Driver live location store: driversLive/{driverId}. */
 export async function upsertDriverLive(driverId, pos) {
   if (!driverId) throw new Error("Missing driverId");
   const ref = doc(db, "driversLive", driverId);
@@ -110,7 +78,6 @@ export async function upsertDriverLive(driverId, pos) {
     },
     { merge: true }
   );
-  return true;
 }
 
 export function listenDriverLive(driverId, cb) {
@@ -121,15 +88,17 @@ export function listenDriverLive(driverId, cb) {
 
 /**
  * Listen pending rides for driver's area.
- * NOTE: Composite indexes can be annoying.
- * To reduce index requirements, we keep only status filter by default,
- * and you can pass governorate/center/vehicleType to filter client-side if needed.
+ * NOTE: This query needs a composite index when combining multiple where + orderBy.
  */
 export function listenPendingRides(filters, cb) {
-  // Keep server query minimal to avoid "requires an index"
+  const { governorate = "", center = "", vehicleType = "" } = filters || {};
+
   const q = query(
     collection(db, "rides"),
     where("status", "==", "pending"),
+    where("governorate", "==", governorate),
+    where("center", "==", center),
+    where("vehicleType", "==", vehicleType),
     orderBy("createdAt", "desc"),
     limit(25)
   );
@@ -137,193 +106,228 @@ export function listenPendingRides(filters, cb) {
   return onSnapshot(q, (snap) => {
     const items = [];
     snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
-
-    const governorate = filters?.governorate || "";
-    const center = filters?.center || "";
-    const vehicleType = filters?.vehicleType || "";
-
-    // client-side filtering
-    const filtered = items.filter((r) => {
-      if (governorate && r.governorate !== governorate) return false;
-      if (center && r.center !== center) return false;
-      if (vehicleType && r.vehicleType !== vehicleType) return false;
-      return true;
-    });
-
-    cb(filtered);
+    cb(items);
   });
 }
 
-/** Accept a ride (driver side) */
+/** Accept a ride (driver side). */
 export async function acceptRide(rideId, driverId, driverSnap = {}) {
   if (!rideId) throw new Error("Missing rideId");
   if (!driverId) throw new Error("Missing driverId");
   const ref = doc(db, "rides", rideId);
-
   await updateDoc(ref, {
     status: "accepted",
     driverId,
     driverSnap,
-    acceptedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-
-  // also store active ride on driver profile (optional)
-  try {
-    await updateDoc(doc(db, "users", driverId), {
-      activeRideId: rideId,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (_) {}
-
   return true;
 }
 
-// compat alias (some files import acceptRideDirect)
-export const acceptRideDirect = acceptRide;
+/** Driver accept directly (compat). */
+export async function acceptRideDirect(rideId, driverId, driverSnap = {}) {
+  return acceptRide(rideId, driverId, driverSnap);
+}
 
 /** Start trip */
-export async function startTrip(rideId, meta = {}) {
+export async function startTrip(rideId) {
   if (!rideId) throw new Error("Missing rideId");
   const ref = doc(db, "rides", rideId);
   await updateDoc(ref, {
     status: "in_trip",
     startedAt: serverTimestamp(),
-    tripMeta: meta,
     updatedAt: serverTimestamp(),
   });
   return true;
 }
 
 /** Complete trip */
-export async function completeTrip(rideId, meta = {}) {
+export async function completeTrip(rideId) {
   if (!rideId) throw new Error("Missing rideId");
   const ref = doc(db, "rides", rideId);
   await updateDoc(ref, {
     status: "completed",
     completedAt: serverTimestamp(),
-    completeMeta: meta,
     updatedAt: serverTimestamp(),
   });
   return true;
 }
 
-// Some files import completeRide
-export const completeRide = completeTrip;
-
-/** Cancel ride (passenger or driver) */
-export async function cancelRide(rideId, meta = {}) {
+/** Cancel ride (supports reason string OR meta object) */
+export async function cancelRide(rideId, reason = "") {
   if (!rideId) throw new Error("Missing rideId");
   const ref = doc(db, "rides", rideId);
+
+  // allow passing meta object: { reason, byRole, byUid }
+  let cancelReason = "";
+  let cancelledByRole = "";
+  let cancelledByUid = "";
+  if (reason && typeof reason === "object") {
+    cancelReason = reason.reason || "";
+    cancelledByRole = reason.byRole || "";
+    cancelledByUid = reason.byUid || "";
+  } else {
+    cancelReason = reason || "";
+  }
+
   await updateDoc(ref, {
     status: "cancelled",
-    cancelReason: meta?.reason || "",
-    cancelMeta: meta,
+    cancelReason,
+    cancelledByRole: cancelledByRole || null,
+    cancelledByUid: cancelledByUid || null,
     updatedAt: serverTimestamp(),
   });
   return true;
 }
 
-// Some files import cancelTrip
-export const cancelTrip = cancelRide;
-
-/** Cleanup active ride on driver */
+/** Driver active ride cleanup (compat) */
 export async function clearDriverActiveRide(driverId) {
   if (!driverId) return true;
+  // if you store active ride on profile, clear it
   try {
-    await updateDoc(doc(db, "users", driverId), {
+    const ref = doc(db, "users", driverId);
+    await updateDoc(ref, {
       activeRideId: null,
       updatedAt: serverTimestamp(),
     });
-  } catch (_) {}
+  } catch (e) {
+    // ignore if user doc doesn't exist
+  }
   return true;
 }
 
-/** Passenger Offer flow (optional compat for older files) */
-export async function driverMakeOffer(rideId, offer = {}) {
+/** Compatibility aliases some files may import */
+export const completeRide = completeTrip;
+export const cancelTrip = cancelRide;
+
+/* ================================
+ * Compatibility layer (v1 API)
+ * ================================ */
+
+// Passenger: listen my open ride (pending/accepted/in_trip) for a passenger
+export function listenMyOpenRideForPassenger(passengerId, cb) {
+  if (!passengerId) return () => {};
+  const q = query(
+    collection(db, "rides"),
+    where("passengerId", "==", passengerId),
+    where("status", "in", ["pending", "accepted", "in_trip"]),
+    orderBy("createdAt", "desc"),
+    limit(1)
+  );
+
+  return onSnapshot(q, (snap) => {
+    let ride = null;
+    snap.forEach((d) => {
+      if (!ride) ride = { id: d.id, ...d.data() };
+    });
+    cb(ride);
+  });
+}
+
+// Passenger: submit ride request (alias)
+export async function submitRideRequest(payload) {
+  return createRideRequest(payload);
+}
+
+// Passenger/Driver: cancel ride compat (accepts (rideId, reason?))
+export async function cancelRideCompat(rideId, reason = "") {
+  return cancelRide(rideId, reason);
+}
+
+// Driver: list pending rides for driver's area (alias)
+export function listenPendingRidesForDriver(filters, cb) {
+  return listenPendingRides(filters, cb);
+}
+
+/** Driver offer flow (optional compat)
+ * Store driver's price offer inside ride.offer = { driverId, price, driverSnap, ... }.
+ */
+export async function sendDriverOffer(rideId, offerPayload = {}) {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId);
+  const payload = {
+    ...offerPayload,
+    createdAt: offerPayload.createdAt || serverTimestamp(),
+  };
+  await updateDoc(ref, {
+    offer: payload,
+    updatedAt: serverTimestamp(),
+  });
+  return true;
+}
+
+export async function acceptDriverOffer(rideId, opts = {}) {
+  if (!rideId) throw new Error("Missing rideId");
+  const snap = await getDoc(doc(db, "rides", rideId));
+  if (!snap.exists()) throw new Error("Ride not found");
+  const ride = snap.data();
+  const offer = ride.offer || {};
+  const driverId = opts.driverId || offer.driverId;
+  if (!driverId) throw new Error("No offer to accept");
+
+  await acceptRide(rideId, driverId, offer.driverSnap || opts.driverSnap || {});
+  const price = opts.price ?? offer.price;
+  if (price != null) {
+    await updateDoc(doc(db, "rides", rideId), {
+      price: Number(price),
+      updatedAt: serverTimestamp(),
+    });
+  }
+  return true;
+}
+
+export async function rejectDriverOffer(rideId) {
   if (!rideId) throw new Error("Missing rideId");
   await updateDoc(doc(db, "rides", rideId), {
-    offer,
+    offer: null,
     updatedAt: serverTimestamp(),
   });
   return true;
 }
 
+// Passenger: listen for offer on a ride (alias)
+export function listenMyDriverOffer(rideId, cb) {
+  return listenRide(rideId, (ride) => cb(ride?.offer || null));
+}
+
+// Write private fields for a ride (used by passenger.js)
+export async function setRidePrivate(rideId, data = {}, scope = "passenger") {
+  if (!rideId) throw new Error("Missing rideId");
+  const ref = doc(db, "rides", rideId, "private", scope);
+  await setDoc(ref, { ...data, updatedAt: serverTimestamp() }, { merge: true });
+  return true;
+}
+
+// Passenger accept current driver offer on ride
 export async function passengerAcceptOffer(rideId, opts = {}) {
   if (!rideId) throw new Error("Missing rideId");
-  const rideRef = doc(db, "rides", rideId);
-  const snap = await getDoc(rideRef);
+  const snap = await getDoc(doc(db, "rides", rideId));
   if (!snap.exists()) throw new Error("Ride not found");
-
   const ride = snap.data();
-  if (opts?.passengerId && ride?.passengerId && opts.passengerId !== ride.passengerId) {
+  const offer = ride.offer || {};
+  const passengerId = opts.passengerId || ride.passengerId;
+
+  if (opts.passengerId && ride.passengerId && ride.passengerId !== opts.passengerId) {
     throw new Error("Not your ride");
   }
 
-  const offer = ride?.offer || null;
-  if (!offer?.driverId) throw new Error("No offer to accept");
-
-  await updateDoc(rideRef, {
-    status: "accepted",
+  return acceptDriverOffer(rideId, {
     driverId: offer.driverId,
-    driverSnap: offer.driverSnap || {},
-    acceptedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    price: offer.price,
+    passengerId,
   });
-
-  return true;
 }
 
+// Passenger reject current driver offer on ride
 export async function passengerRejectOffer(rideId, opts = {}) {
   if (!rideId) throw new Error("Missing rideId");
-  const rideRef = doc(db, "rides", rideId);
-  const snap = await getDoc(rideRef);
+  const snap = await getDoc(doc(db, "rides", rideId));
   if (!snap.exists()) throw new Error("Ride not found");
-
   const ride = snap.data();
-  if (opts?.passengerId && ride?.passengerId && opts.passengerId !== ride.passengerId) {
+
+  if (opts.passengerId && ride.passengerId && ride.passengerId !== opts.passengerId) {
     throw new Error("Not your ride");
   }
 
-  await updateDoc(rideRef, {
-    status: "pending",
-    offer: deleteField(),
-    updatedAt: serverTimestamp(),
-  });
-
-  return true;
-}
-
-/** ========= Global compat (fix ReferenceError when a file forgets to import) ========= **/
-if (typeof window !== "undefined") {
-  Object.assign(window, {
-    // ride lifecycle
-    createRideRequest,
-    listenRide,
-    listenRidePrivate,
-    listenMyOpenRideForPassenger,
-    acceptRide,
-    acceptRideDirect,
-    startTrip,
-    completeTrip,
-    completeRide,
-    cancelRide,
-    cancelTrip,
-
-    // driver live
-    upsertDriverLive,
-    listenDriverLive,
-    listenPendingRides,
-
-    // profile
-    getMyProfile,
-    upsertUserProfile,
-    migrateLegacyProfile,
-
-    // offers
-    driverMakeOffer,
-    passengerAcceptOffer,
-    passengerRejectOffer,
-    clearDriverActiveRide,
-  });
+  return rejectDriverOffer(rideId);
 }
