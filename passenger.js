@@ -330,9 +330,8 @@ function renderRideUI(ride){
     if(offerBox) offerBox.style.display="none";
   }
 
-  // show driver data if accepted
-  if(ride.status === "accepted" || ride.status === "in_trip" || ride.status === "completed"){
-    const d = ride.driverSnap;
+ // show driver data if accepted
+const d = ride.driverSnap;
 
   // Private driver contact (available after acceptance)
   if(privateUnsub){ privateUnsub(); privateUnsub=null; }
