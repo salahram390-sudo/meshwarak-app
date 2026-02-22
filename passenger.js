@@ -511,6 +511,7 @@ $("#notifyBtn")?.addEventListener("click", async ()=>{
   toast(p === "granted" ? "تم تفعيل الإشعارات ✅" : "لم يتم تفعيل الإشعارات");
 });
 }
+}
 // ===== Auth guard + listeners =====
 onAuthStateChanged(auth, async (user)=>{
   if(!user){ window.location.href="login.html"; return; }
