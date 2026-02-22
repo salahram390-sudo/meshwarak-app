@@ -14,7 +14,7 @@ import {
   startTrip,
   completeTrip,
   upsertDriverLive,
-  clearDriverActiveRide
+  clearDriverActiveRide,
   migrateLegacyProfile,
 } from "./firestore-api.js";
 

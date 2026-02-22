@@ -18,7 +18,7 @@ import {
   passengerAcceptOffer,
   passengerRejectOffer,
   cancelRide,
-  completeTrip
+  completeTrip,
   migrateLegacyProfile,
 } from "./firestore-api.js";
 
