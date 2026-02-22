@@ -253,7 +253,6 @@ function renderRideUI(ride){
   const completeBtn = $("#completeRide");
   const reqBtn = $("#requestRide");
 
-  // no ride
   if(!ride){
     if(offerBox) offerBox.style.display = "none";
     if(trackBtn) trackBtn.disabled = true;
@@ -267,7 +266,6 @@ function renderRideUI(ride){
 
   const st = ride.status || "";
 
-  // buttons state
   const isActive = ["pending","offer_sent","accepted","in_trip"].includes(st);
   if(reqBtn) reqBtn.disabled = isActive;
   if(cancelBtn) cancelBtn.disabled = !isActive || ["completed","cancelled"].includes(st);
@@ -278,7 +276,6 @@ function renderRideUI(ride){
   const canComplete = ["accepted","in_trip"].includes(st);
   if(completeBtn) completeBtn.disabled = !canComplete;
 
-  // offer UI
   if(st === "offer_sent" && ride.offer?.price != null){
     if(offerText) offerText.textContent = `السعر المقترح: ${ride.offer.price} جنيه`;
     if(offerBox) offerBox.style.display = "";
@@ -289,7 +286,6 @@ function renderRideUI(ride){
     if(offerBox) offerBox.style.display = "none";
   }
 
-  // messages
   if(st === "pending"){
     setMsg("تم إرسال الطلب… في انتظار السائق");
   }else if(st === "offer_sent"){
